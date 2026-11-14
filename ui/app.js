@@ -426,6 +426,8 @@ function collegaEventi() {
   $("#tasto-adatta").addEventListener("click", adatta);
   $("#tasto-genera-immagine").addEventListener("click", generaImmagine);
   $("#tasto-togli-immagine").addEventListener("click", togliImmagine);
+  $("#tasto-copia-immagine").addEventListener("click", () => immagineSulSistema("/api/allegato/copia"));
+  $("#tasto-cartella-immagine").addEventListener("click", () => immagineSulSistema("/api/allegato/cartella"));
   $("#file-immagine").addEventListener("change", caricaImmagine);
   $("#tasto-prepara").addEventListener("click", prepara);
   $("#tasto-invia").addEventListener("click", invia);
@@ -632,6 +634,22 @@ function mostraImmagine() {
     nodo.removeAttribute("src");
   }
   $("#tasto-togli-immagine").disabled = !corrente;
+  $("#tasto-copia-immagine").disabled = !corrente;
+  $("#tasto-cartella-immagine").disabled = !corrente;
+}
+
+/* Porta l'immagine a portata di mano: negli appunti (Ctrl+V nel compositore) o
+   nella cartella aperta con il file selezionato. Serve al flusso manuale, perche'
+   l'indirizzo del compositore non porta con se' le immagini. */
+async function immagineSulSistema(rotta) {
+  const corrente = stato.allegati[0];
+  if (!corrente) { scrivi("#esito-immagine", "Nessuna immagine da usare.", "male"); return; }
+  try {
+    const esito = await inviaJson(rotta, { percorso: corrente.percorso });
+    scrivi("#esito-immagine", esito.ok ? esito.messaggio : esito.motivo, esito.ok ? "ok" : "male");
+  } catch (e) {
+    scrivi("#esito-immagine", "Non riuscito: " + e.message, "male");
+  }
 }
 
 function togliImmagine() {
@@ -770,6 +788,10 @@ async function invia() {
 function apriCompositore() {
   if (!stato.preparazione || !stato.preparazione.url_compositore) return;
   window.open(stato.preparazione.url_compositore, "_blank");
+  const ha_immagine = stato.allegati.length > 0;
+  scrivi("#esito-invio", ha_immagine
+    ? "Compositore aperto col testo dentro. Per l'immagine: premi Copia l'immagine e incolla con Ctrl+V."
+    : "Compositore aperto col testo dentro.", "ok");
 }
 
 async function copiaCampo(id, tasto) {
@@ -859,6 +881,7 @@ async function caricaConfig() {
   $("#modulo-x").appendChild(campo("Client ID dell'app X", "conf-x-client_id", "text", (conf.canali.x || {}).client_id || ""));
   $("#modulo-x").appendChild(campo("Client Secret", "conf-x-client_secret", "password",
     "", segreti["canali.x.client_secret"] ? "presente: lascia vuoto per non cambiarlo" : "assente"));
+  $("#conf-x-api").checked = ((conf.canali.x || {}).modalita || "compositore") !== "compositore";
 
   $("#modulo-firma").innerHTML = "";
   $("#modulo-firma").appendChild(campo("Firma in coda ai post (facoltativa)", "conf-firma", "text",
@@ -904,9 +927,17 @@ async function salvaConfigLlm() {
 async function salvaConfigX() {
   try {
     await inviaJson("/api/config", {
-      canali: { x: { client_id: valoreDi("conf-x-client_id"), client_secret: valoreDi("conf-x-client_secret") } },
+      canali: {
+        x: {
+          client_id: valoreDi("conf-x-client_id"),
+          client_secret: valoreDi("conf-x-client_secret"),
+          modalita: $("#conf-x-api").checked ? "api" : "compositore",
+        },
+      },
     });
-    scrivi("#esito-x", "Salvato.", "ok");
+    scrivi("#esito-x", $("#conf-x-api").checked
+      ? "Salvato: X pubblichera' tramite l'API."
+      : "Salvato: X si prepara qui e si pubblica dal compositore.", "ok");
     await caricaConfig();
     await aggiornaStatoX();
   } catch (e) { scrivi("#esito-x", e.message, "male"); }

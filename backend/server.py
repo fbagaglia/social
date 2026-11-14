@@ -30,6 +30,7 @@ import fonti                               # noqa: E402
 import generazione                         # noqa: E402
 import immagini                            # noqa: E402
 import parametri                           # noqa: E402
+import sistema                             # noqa: E402
 import stato                               # noqa: E402
 
 VERSIONE = "0.1.0"
@@ -295,6 +296,8 @@ class Gestore(BaseHTTPRequestHandler):
                 self._carica_immagine(grezzo, tipo_contenuto)
             elif percorso == "/api/immagine/genera":
                 self._genera_immagine(grezzo)
+            elif percorso in ("/api/allegato/copia", "/api/allegato/cartella"):
+                self._allegato_sul_sistema(percorso, grezzo)
             elif percorso == "/api/x/login":
                 self.json(canale_x.avvia_login(cfg.leggi()))
             elif percorso == "/api/prepara":
@@ -384,6 +387,27 @@ class Gestore(BaseHTTPRequestHandler):
             self.json({"ok": False, "motivo": str(errore)})
             return
         self.json({"ok": True, **esito})
+
+    def _allegato_sul_sistema(self, rotta: str, grezzo: bytes) -> None:
+        """Porta l'immagine a portata di mano: negli appunti o nella cartella aperta.
+
+        E' il pezzo che manca alla consegna manuale: l'URL del compositore non porta
+        le immagini, quindi l'allegato si prepara qui.
+        """
+        dati = self._json_corpo(grezzo)
+        percorso = Path(dati.get("percorso", ""))
+        if not dentro(percorso, cfg.CARTELLA_ALLEGATI) or not percorso.exists():
+            self.errore("immagine non trovata tra gli allegati", 404)
+            return
+        try:
+            if rotta == "/api/allegato/copia":
+                messaggio = sistema.copia_immagine(percorso)
+            else:
+                messaggio = sistema.apri_cartella(percorso)
+        except sistema.SistemaError as errore:
+            self.json({"ok": False, "motivo": str(errore)})
+            return
+        self.json({"ok": True, "messaggio": messaggio, "nome": percorso.name})
 
     def _prepara(self, grezzo: bytes) -> None:
         dati = self._json_corpo(grezzo)

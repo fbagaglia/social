@@ -41,7 +41,12 @@ PREDEFINITO = {
     },
     "ricerca": {"firecrawlKey": "", "braveKey": "", "attiva": True},
     "canali": {
-        "x": {"client_id": "", "client_secret": ""},
+        "x": {
+            "client_id": "",
+            "client_secret": "",
+            # "compositore" = non si usa l'API (a pagamento), si apre il compositore.
+            "modalita": "compositore",
+        },
         "linkedin": {"access_token": "", "autore": ""},
         "mastodon": {"istanza": "", "access_token": ""},
         "bluesky": {"handle": "", "app_password": ""},

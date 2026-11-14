@@ -55,7 +55,7 @@ contenuti).
 |---|---|---|
 | **Telegram** | **collegato** — Bot API | tasto *Pubblica su Telegram* |
 | **Mastodon** | **collegato** — REST API | tasto *Pubblica su Mastodon* |
-| **X / Twitter** | client pronto, manca l'app sviluppatore | tasto *Pubblica su X* |
+| **X / Twitter** | **compositore, per scelta** (l'API è a pagamento) | *Apri il compositore* + *Copia l'immagine* → Ctrl+V |
 | LinkedIn · Facebook · Instagram · Threads · Bluesky · YouTube | anteprima + consegna manuale | *Apri il compositore* / copia il testo |
 
 Le credenziali di Telegram e Mastodon sono state prese dai progetti esistenti

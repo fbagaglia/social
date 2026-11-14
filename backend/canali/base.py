@@ -25,6 +25,7 @@ class Canale:
     file_immagine: str = ""          # obbligo/limite sull'immagine, per l'anteprima
     titolo_etichetta: str = "Titolo / gancio"
     modello_url: str = ""            # compositore web, per la consegna manuale
+    motivo_compositore: str = ""     # perche' si scelie il compositore invece dell'API
     nota_immagine: str = ""          # vincolo dell'immagine su quella rete, se c'e'
 
     # --- credenziali ------------------------------------------------------- #
@@ -42,9 +43,23 @@ class Canale:
         """
         return self.limite
 
+    def modalita(self, conf: dict) -> str:
+        """'api' oppure 'compositore'.
+
+        In 'compositore' il canale non pubblica via API **per scelta** (l'API di X e'
+        a pagamento, per esempio): le credenziali mancanti non sono un difetto da
+        segnalare, e il testo e l'immagine si consegnano al compositore.
+        """
+        scelta = ((conf.get("canali") or {}).get(self.chiave) or {}).get("modalita")
+        if scelta == "compositore":
+            return "compositore"
+        return "api" if self.collegato else "compositore"
+
     def pronto(self, conf: dict) -> tuple[bool, str]:
         """Puo' pubblicare adesso? Decide in locale, senza chiamare la rete."""
-        if not self.collegato:
+        if self.modalita(conf) == "compositore":
+            if self.motivo_compositore:
+                return False, self.motivo_compositore
             return False, "consegna manuale: si pubblica dal compositore"
         mancanti = self.credenziali_mancanti(conf)
         if mancanti:
@@ -117,7 +132,8 @@ class Canale:
             problemi.append({"bloccante": False,
                              "testo": f"{self.etichetta}: {self.nota_immagine}"})
 
-        mancanti = self.credenziali_mancanti(conf) if self.collegato else []
+        mancanti = (self.credenziali_mancanti(conf)
+                    if self.collegato and self.modalita(conf) == "api" else [])
         if mancanti:
             problemi.append({
                 "bloccante": self.collegato,

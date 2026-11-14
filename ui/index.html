@@ -153,7 +153,12 @@
       <div class="anteprima-immagine">
         <img id="immagine-corrente" alt="Nessuna immagine allegata" class="nascosto">
         <p class="esito-tenue" id="esito-immagine">Nessuna immagine allegata.</p>
-        <button type="button" id="tasto-togli-immagine" class="tasto tasto-tenue" disabled>Rimuovi l'immagine</button>
+        <div class="barra-comandi">
+          <button type="button" id="tasto-copia-immagine" class="tasto tasto-forte" disabled>Copia l'immagine</button>
+          <button type="button" id="tasto-cartella-immagine" class="tasto tasto-tenue" disabled>Apri la cartella</button>
+          <button type="button" id="tasto-togli-immagine" class="tasto tasto-tenue" disabled>Rimuovi</button>
+        </div>
+        <p class="spiegazione">Col compositore aperto: <strong>Copia l'immagine</strong> e poi Ctrl+V nel riquadro del post, oppure <strong>Apri la cartella</strong> e trascini il file.</p>
       </div>
     </div>
   </article>
@@ -192,6 +197,12 @@
     <h3 class="sottotitolo-area"><span class="numero">2</span> X / Twitter</h3>
     <p class="spiegazione">Serve una app creata su console.x.com con OAuth 2.0 attivo e questo callback registrato esattamente: <code>http://localhost:8080/callback</code></p>
     <div id="modulo-x" class="modulo"></div>
+    <label class="campo-casella" style="margin-top:14px">
+      <input type="checkbox" id="conf-x-api">
+      <span>Pubblica su X tramite l'API &mdash; a pagamento, circa 0,015 $ per post.
+      Se resta spento si apre il compositore di X e l'immagine la alleghi tu: nessun costo,
+      nessuna carta di credito.</span>
+    </label>
     <div class="barra-comandi">
       <button type="button" id="tasto-salva-x" class="tasto tasto-forte">Salva</button>
       <button type="button" id="tasto-login-x" class="tasto">Accedi a X</button>

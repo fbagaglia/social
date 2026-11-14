@@ -1,6 +1,17 @@
 # Guida di Social Studio
 
-## Novità di questa versione (0.2.0)
+## Novità di questa versione (0.3.0)
+
+- **X in modalità compositore, per scelta.** L'API di X è a pagamento e l'app non
+  insiste più: prepara testo e immagine, apre il compositore, e l'allegato lo fai tu.
+  Nessun costo, nessuna carta di credito. L'interruttore è in Configurazione, e resta
+  spento di default.
+- **L'immagine a portata di mano.** Due tasti nuovi sotto l'anteprima: **Copia
+  l'immagine** (poi Ctrl+V nel riquadro del post, senza cercare file) e **Apri la
+  cartella** (si apre con il file già selezionato, da trascinare).
+- L'anteprima **non ti rimprovera più le credenziali di X**: una scelta non è un difetto.
+
+## Versione 0.2.0
 
 - **Tre reti pubblicano davvero**: X/Twitter (API ufficiale, serve la tua app), e ora
   **Telegram** e **Mastodon**, collegati con le credenziali già presenti negli altri
@@ -95,7 +106,7 @@ articoli con il link in chiaro, sappi che quell'URL costa tredici volte il resto
 |---|---|---|
 | **Telegram** | **collegato** (Bot API) | *Pubblica su Telegram* — con foto diventa una didascalia |
 | **Mastodon** | **collegato** (REST API) | *Pubblica su Mastodon* — caricamento immagine compreso |
-| X / Twitter | client pronto, **manca l'app** | *Pubblica su X* — si accende dopo il collegamento |
+| X / Twitter | **compositore, per scelta** (l'API è a pagamento) | *Apri il compositore* + **Copia l'immagine** → Ctrl+V |
 | LinkedIn | manuale | *Anteprima* → *Apri il compositore* |
 | Facebook | manuale | *Anteprima* → copia il testo |
 | Instagram | manuale | serve un'immagine JPEG; pubblica dall'app del telefono |
@@ -104,8 +115,30 @@ articoli con il link in chiaro, sappi che quell'URL costa tredici volte il resto
 | YouTube (post Community) | manuale | non esiste API pubblica per pubblicarlo |
 
 Il tasto di invio è **spento** quando la rete scelta non è pronta, e la ragione è scritta
-sotto (per X: *mancano le credenziali*). Un canale in consegna manuale non sparisce:
-resta in elenco e offre *Apri il compositore*.
+sotto. Un canale in consegna manuale non sparisce: resta in elenco e offre *Apri il
+compositore*.
+
+### La consegna manuale, in pratica
+
+Per le reti che si pubblicano dal compositore (X, LinkedIn, Instagram, Threads, Bluesky,
+Facebook, YouTube) il giro è questo:
+
+1. **Adatta** il testo alla rete, correggilo, poi premi **Anteprima**.
+2. Premi **Apri il compositore**: si apre la pagina di pubblicazione **con il testo già
+   dentro**.
+3. Per l'immagine: premi **Copia l'immagine** e poi **Ctrl+V** nel riquadro del post,
+   oppure **Apri la cartella** e trascina il file dentro.
+4. Pubblica tu.
+
+Il primo passaggio è anche l'ultimo: **il compositore non porta le immagini** (l'indirizzo
+di X accetta solo testo), quindi l'immagine va sempre allegata a mano. I due tasti nuovi
+servono esattamente a non farla cercare.
+
+**X, in particolare.** L'API di X è a pagamento dal 6 febbraio 2026 (circa 0,015 $ per
+post, e **0,20 $ se il testo contiene un link**). L'app è impostata per **non usarla**:
+l'interruttore sta in Configurazione ed è spento. Se un giorno cambi idea, i valori
+dell'app X si incollano lì accanto e si accende il tasto *Pubblica su X* — ma nessun
+costo parte da solo.
 
 Collegare una rete all'API richiede che tu crei una **app sviluppatore** su quella rete e,
 per Meta/TikTok/YouTube, che passi una **revisione**. Si fa una rete alla volta, quando

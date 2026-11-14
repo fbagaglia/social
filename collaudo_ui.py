@@ -197,8 +197,12 @@ def main():
         check("anteprima: si apre il riquadro", "che cosa uscirebbe" in anteprima.lower())
         check("anteprima: dice a nome di chi", "A nome di" in anteprima)
         check("anteprima: mostra il testo che uscirebbe", "TEST MODIFICATO A MANO" in anteprima)
-        check("anteprima: dichiara il problema delle credenziali",
-              "credenziali" in anteprima, anteprima[-160:].replace("\n", " "))
+        # X e' in modalita' compositore: le credenziali non servono e non devono
+        # comparire come problema da risolvere.
+        check("anteprima: NON parla di credenziali (in compositore non servono)",
+              "credenziali" not in anteprima.lower())
+        check("tasto Apri il compositore attivo per X",
+              not pagina.evaluate("() => document.getElementById('tasto-apri').disabled"))
         check("anteprima: NON ha pubblicato niente (Pubblica resta spento)",
               pagina.evaluate("() => document.getElementById('tasto-invia').disabled"))
 

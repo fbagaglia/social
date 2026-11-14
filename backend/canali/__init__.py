@@ -61,14 +61,19 @@ class CanaleX(CanaleConPonte):
 
     def problemi(self, pubblicazione: dict, conf: dict) -> list[dict]:
         problemi = super().problemi(pubblicazione, conf)
+        in_compositore = self.modalita(conf) == "compositore"
+        if in_compositore:
+            # Una scelta non e' un difetto: in modalita' compositore le credenziali
+            # non si nominano nemmeno, o l'utente legge un problema che non ha.
+            problemi = [x for x in problemi if "credenziali" not in x["testo"]]
         costo = self.ponte().costo_stimato(pubblicazione.get("testo", ""))
         if costo > self.ponte().COSTO_TESTO_O_MEDIA:
             problemi.append({
                 "bloccante": False,
-                "testo": (f"il testo contiene un indirizzo web: su X questo post costa circa "
-                          f"${costo:.2f} invece di ${self.ponte().COSTO_TESTO_O_MEDIA:.3f}. "
-                          "Se vuoi risparmiare, togli il link dal testo (mettilo nell'immagine "
-                          "o in bio) e ripubblica l'anteprima."),
+                "testo": (f"il testo contiene un indirizzo web: pubblicando via API questo post "
+                          f"costerebbe circa ${costo:.2f} invece di "
+                          f"${self.ponte().COSTO_TESTO_O_MEDIA:.3f}. Dal compositore non costa "
+                          "niente: togli il link solo se lo pubblichi via API."),
             })
         return problemi
 
@@ -116,6 +121,8 @@ registra(CanaleX(
     hashtag_max=3,
     immagine=True,
     collegato=True,
+    motivo_compositore=("si prepara qui e si pubblica dal compositore di X: l'API di X e' "
+                        "a pagamento (circa 0,015 $ per post, 0,20 $ se il testo ha un link)"),
     prompt=("Post per X/Twitter (max 280 caratteri): diretto e incisivo, 2-3 hashtag, "
             "niente link di condivisione, tono adatto a X."),
     fonte_limite="docs.x.com (limite account senza Premium) e contatori indipendenti",
