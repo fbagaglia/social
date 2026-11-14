@@ -33,6 +33,15 @@ class Canale:
         return [campo for campo, valore in dal_config.items()
                 if not campo.startswith("_") and not valore]
 
+    def limite_effettivo(self, pubblicazione: dict) -> int:
+        """Il tetto valido per QUESTA pubblicazione.
+
+        Serve dove il limite cambia con gli allegati (Telegram: 4096 di testo,
+        1024 di didascalia con la foto). Un solo posto decide, e anteprima,
+        problemi e misura mostrano lo stesso numero.
+        """
+        return self.limite
+
     def pronto(self, conf: dict) -> tuple[bool, str]:
         """Puo' pubblicare adesso? Decide in locale, senza chiamare la rete."""
         if not self.collegato:
@@ -50,7 +59,8 @@ class Canale:
             "collegato": self.collegato,
             "titolo": pubblicazione.get("titolo", ""),
             "testo": pubblicazione.get("testo", ""),
-            "misure": self.misure(pubblicazione.get("testo", "")),
+            "misure": self.misure(pubblicazione.get("testo", ""),
+                                  self.limite_effettivo(pubblicazione)),
             "allegati": [str(Path(p).name) for p in pubblicazione.get("allegati", [])],
             "problemi": self.problemi(pubblicazione, conf),
             "url_compositore": self.url_compositore(pubblicazione),
@@ -71,13 +81,14 @@ class Canale:
         }
 
     # --- utilita' ---------------------------------------------------------- #
-    def misure(self, testo: str) -> dict:
+    def misure(self, testo: str, limite: int | None = None) -> dict:
         caratteri = len(testo)
+        limite = self.limite if limite is None else limite
         return {
             "caratteri": caratteri,
-            "limite": self.limite,
-            "restanti": self.limite - caratteri,
-            "entro": caratteri <= self.limite,
+            "limite": limite,
+            "restanti": limite - caratteri,
+            "entro": caratteri <= limite,
         }
 
     def problemi(self, pubblicazione: dict, conf: dict) -> list[dict]:
@@ -85,13 +96,14 @@ class Canale:
         allegati = [Path(p) for p in pubblicazione.get("allegati", [])]
         problemi: list[dict] = []
 
+        limite = self.limite_effettivo(pubblicazione)
         if not testo.strip():
             problemi.append({"bloccante": True, "testo": "il testo e' vuoto"})
-        elif len(testo) > self.limite:
+        elif len(testo) > limite:
             problemi.append({
                 "bloccante": True,
-                "testo": (f"il testo e' di {len(testo)} caratteri, {len(testo) - self.limite} "
-                          f"oltre il tetto di {self.limite} di {self.etichetta} "
+                "testo": (f"il testo e' di {len(testo)} caratteri, {len(testo) - limite} "
+                          f"oltre il tetto di {limite} di {self.etichetta} "
                           "(non lo tronco: va accorciato a mano)"),
             })
 

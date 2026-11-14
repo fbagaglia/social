@@ -41,7 +41,7 @@ TETTO_CORPO = 12 * 1024 * 1024
 # La sonda di un canale interroga la rete (Telegram, Mastodon): si tiene in cache
 # invece di ripeterla a ogni clic, che e' lento e fragile.
 CACHE_STATO: dict = {}
-CACHE_SECONDI = 120
+CACHE_SECONDI = 600
 
 TIPI = {
     ".html": "text/html; charset=utf-8",

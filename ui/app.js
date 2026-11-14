@@ -398,13 +398,17 @@ async function aggiornaStatoCanale(chiave) {
   }
   try {
     const controllo = new AbortController();
-    const scadenza = setTimeout(() => controllo.abort(), 10000);
+    const scadenza = setTimeout(() => controllo.abort(), 20000);
     stato.statoCanali[chiave] = await chiedi("/api/canale/" + chiave + "/stato",
                                              { signal: controllo.signal });
     clearTimeout(scadenza);
   } catch (e) {
-    // La sonda e' un di piu': se non risponde, si dice e basta. Il tasto resta com'e'.
-    stato.statoCanali[chiave] = { sondaFallita: true, motivo: e.message || "nessuna risposta" };
+    // La sonda e' un di piu': se non risponde, si dice e basta, in parole comprensibili.
+    // Il tasto resta com'e', perche' non dipende da lei.
+    stato.statoCanali[chiave] = {
+      sondaFallita: true,
+      motivo: "non sono riuscito a leggere su quale account scrivere: la rete non ha risposto in tempo. Si puo' pubblicare lo stesso.",
+    };
   }
   aggiornaTasti();
 }
@@ -821,6 +825,8 @@ function aggiornaTasti() {
     motivi.push("scegli un social nel punto 4 per preparare o pubblicare");
   } else if (!c.pronto) {
     motivi.push(c.motivo_pronto || (c.etichetta + " non e' pronto a pubblicare"));
+  } else if (s.sondaFallita) {
+    motivi.push(s.motivo);
   } else if (s.motivo) {
     motivi.push("attenzione: " + s.motivo);
   }

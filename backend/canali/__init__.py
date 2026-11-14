@@ -85,18 +85,18 @@ class CanaleX(CanaleConPonte):
 class CanaleTelegram(CanaleConPonte):
     nome_modulo = "telegram"
 
+    def limite_effettivo(self, pubblicazione: dict) -> int:
+        # Con la foto il testo diventa una didascalia: 1024. Senza, il messaggio
+        # arriva a 4096. Un posto solo decide, cosi' anteprima e problemi concordano.
+        return self.limite if pubblicazione.get("allegati") else 4096
+
     def problemi(self, pubblicazione: dict, conf: dict) -> list[dict]:
         problemi = super().problemi(pubblicazione, conf)
-        if pubblicazione.get("allegati"):
-            return problemi
-        # Senza foto il messaggio arriva a 4096: non bloccare sopra i 1024 della didascalia.
-        testo = pubblicazione.get("testo", "") or ""
-        problemi = [x for x in problemi if "oltre il tetto" not in x["testo"]]
-        if len(testo) > self.limite:
+        if not pubblicazione.get("allegati"):
             problemi.append({
                 "bloccante": False,
-                "testo": ("senza immagine Telegram accetta fino a 4096 caratteri; con la foto "
-                          "allegata la didascalia si ferma a 1024"),
+                "testo": ("senza immagine Telegram accetta fino a 4096 caratteri; allega una "
+                          "foto e la didascalia si fermera' a 1024"),
             })
         return problemi
 
