@@ -79,7 +79,7 @@ def main():
         # --- lo stato iniziale dei tasti di invio, con la motivazione ---
         check("Pubblica disabilitato senza canale scelto",
               pagina.evaluate("() => document.getElementById('tasto-invia').disabled"))
-        motivo = pagina.inner_text("#esito-invio")
+        motivo = pagina.inner_text("#nota-invio")
         check("motivazione scritta in pagina (non solo un tooltip)", "scegli un social" in motivo, motivo[:90])
 
         # --- guida ---
@@ -149,6 +149,30 @@ def main():
         check("il campo e' modificabile e il contatore segue",
               "/ 280" in contatore_dopo and contatore_dopo.startswith("44"),
               contatore_dopo)
+
+        # --- Telegram: canale collegato davvero. Il tasto si accende, NON si preme. ---
+        pagina.click(".canale[data-canale=telegram]")
+        # Il tasto e' istantaneo (dipende da un fatto locale), la nota arriva dopo la
+        # sonda di rete: si aspetta la nota, che e' l'elemento lento.
+        nota = ""
+        for _ in range(40):
+            nota = pagina.inner_text("#nota-invio")
+            if "intelligenza artificiale" in nota:
+                break
+            pagina.wait_for_timeout(400)
+        tasto_invia = pagina.inner_text("#tasto-invia")
+        check("Telegram: il tasto di invio si accende (canale collegato)",
+              not pagina.evaluate("() => document.getElementById('tasto-invia').disabled"))
+        check("Telegram: il tasto dice su quale rete pubblica", "Telegram" in tasto_invia, tasto_invia)
+        check("Telegram: la nota dice su quale canale scrive",
+              "intelligenza artificiale" in nota, nota[:120])
+        pagina.click(".canale[data-canale=x]")
+        for _ in range(20):
+            if pagina.evaluate("() => document.getElementById('tasto-invia').disabled"):
+                break
+            pagina.wait_for_timeout(300)
+        check("tornando su X il tasto si rispegne (X non e' collegato)",
+              pagina.evaluate("() => document.getElementById('tasto-invia').disabled"))
 
         # --- immagine generata ---
         pagina.fill("#imm-titolo", "Il divario digitale e' una questione democratica")

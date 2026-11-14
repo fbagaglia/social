@@ -1,5 +1,8 @@
-# Segreti e stato locale: mai in git
+# Segreti e stato locale: mai in git.
+# NB: il salvataggio crea config.json.bak — e un backup delle chiavi e' chiavi.
 config.json
+config.json.*
+*.bak
 .state/
 
 # Stato dell'app: allegati, lavoro in corso, registro

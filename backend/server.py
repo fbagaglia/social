@@ -12,6 +12,7 @@ from __future__ import annotations
 import json
 import os
 import sys
+import time
 import traceback
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
@@ -36,6 +37,11 @@ PORTA = int(os.environ.get("SOCIAL_STUDIO_PORT", "8796"))
 CARTELLA_UI = RADICE / "ui"
 INTESTAZIONE_POST = "X-Social-Studio"
 TETTO_CORPO = 12 * 1024 * 1024
+
+# La sonda di un canale interroga la rete (Telegram, Mastodon): si tiene in cache
+# invece di ripeterla a ogni clic, che e' lento e fragile.
+CACHE_STATO: dict = {}
+CACHE_SECONDI = 120
 
 TIPI = {
     ".html": "text/html; charset=utf-8",
@@ -99,6 +105,13 @@ class Gestore(BaseHTTPRequestHandler):
     server_version = "SocialStudio/" + VERSIONE
 
     # --- risposte ---------------------------------------------------------- #
+    def _scrivi(self, dati: bytes) -> None:
+        """Se il client ha gia' chiuso (ricarica, cambio pagina) non e' un errore nostro."""
+        try:
+            self.wfile.write(dati)
+        except (ConnectionError, OSError):
+            pass
+
     def _invia(self, stato_http: int, corpo: bytes, tipo: str) -> None:
         self.send_response(stato_http)
         self.send_header("Content-Type", tipo)
@@ -106,9 +119,12 @@ class Gestore(BaseHTTPRequestHandler):
         self.send_header("Cache-Control", "no-store, no-cache, must-revalidate")
         self.send_header("Pragma", "no-cache")
         self.send_header("X-Content-Type-Options", "nosniff")
-        self.end_headers()
+        try:
+            self.end_headers()
+        except (ConnectionError, OSError):
+            return
         if self.command != "HEAD":
-            self.wfile.write(corpo)
+            self._scrivi(corpo)
 
     def json(self, dati, stato_http: int = 200) -> None:
         corpo = json.dumps(dati, ensure_ascii=False).encode()
@@ -200,7 +216,13 @@ class Gestore(BaseHTTPRequestHandler):
                 self.json({"parametri": parametri.PARAMETRI,
                            "predefiniti": parametri.predefiniti()})
             elif percorso == "/api/canali":
-                self.json({"canali": canali.elenco()})
+                conf = cfg.leggi()
+                elenco = canali.elenco()
+                for voce in elenco:
+                    pronto, motivo = canali.prendi(voce["chiave"]).pronto(conf)
+                    voce["pronto"] = pronto
+                    voce["motivo_pronto"] = motivo
+                self.json({"canali": elenco})
             elif percorso == "/api/guida":
                 guida = CARTELLA_UI / "guida.md"
                 if guida.exists():
@@ -213,11 +235,39 @@ class Gestore(BaseHTTPRequestHandler):
                 self.json({"pubblicazioni": stato.leggi_registro()})
             elif percorso == "/api/x/stato":
                 self.json(canale_x.stato_token(cfg.leggi()))
+            elif percorso.startswith("/api/canale/") and percorso.endswith("/stato"):
+                self._stato_canale(percorso[len("/api/canale/"):-len("/stato")])
             else:
                 self.errore("rotta non trovata: " + percorso, 404)
         except Exception as errore:  # una lettura non deve mai portare giu' il servizio
             self.errore(f"{type(errore).__name__}: {errore}", 500)
             traceback.print_exc()
+
+    def _stato_canale(self, chiave: str) -> None:
+        """Stato del collegamento di un singolo canale. Sola lettura: non pubblica nulla."""
+        try:
+            canale = canali.prendi(chiave)
+        except KeyError as errore:
+            self.errore(str(errore), 404)
+            return
+        if not canale.collegato or not hasattr(canale, "ponte"):
+            self.json({"collegato": False, "manuale": True, "account": None, "motivo": ""})
+            return
+
+        adesso = time.time()
+        salvato = CACHE_STATO.get(chiave)
+        if salvato and adesso - salvato[0] < CACHE_SECONDI:
+            self.json(salvato[1])
+            return
+
+        try:
+            esito = {"collegato": True, "manuale": False,
+                     "account": canale.ponte().account(cfg.leggi()), "motivo": ""}
+            CACHE_STATO[chiave] = (adesso, esito)
+        except BaseException as errore:  # i ponti escono con eccezioni proprie o SystemExit
+            esito = {"collegato": False, "manuale": False, "account": None,
+                     "motivo": str(errore)}
+        self.json(esito)
 
     def do_HEAD(self) -> None:  # noqa: N802
         self.do_GET()

@@ -53,8 +53,16 @@ contenuti).
 
 | Social | Stato | Come si pubblica |
 |---|---|---|
-| **X / Twitter** | **collegato** — API ufficiale v2 | tasto *Pubblica su X* |
-| LinkedIn · Facebook · Instagram · Threads · Mastodon · Bluesky · Telegram · YouTube | anteprima + consegna manuale | *Apri il compositore* / copia il testo |
+| **Telegram** | **collegato** — Bot API | tasto *Pubblica su Telegram* |
+| **Mastodon** | **collegato** — REST API | tasto *Pubblica su Mastodon* |
+| **X / Twitter** | client pronto, manca l'app sviluppatore | tasto *Pubblica su X* |
+| LinkedIn · Facebook · Instagram · Threads · Bluesky · YouTube | anteprima + consegna manuale | *Apri il compositore* / copia il testo |
+
+Le credenziali di Telegram e Mastodon sono state prese dai progetti esistenti
+(`Ultimate Crea post completo/config.json` → blocco `social`) e copiate in `config.json`
+con uno script che legge e scrive senza mai stamparle. La presenza si verifica in locale;
+l'account e il canale di destinazione si leggono dalla rete **prima** di inviare qualsiasi
+cosa, e si vedono nella nota sotto i tasti.
 
 Le nove reti hanno ciascuna il proprio tetto di caratteri e i propri vincoli sull'immagine,
 verificati alla fonte (vedi `API-SOCIAL-2026-11.md`). L'app li mostra nell'anteprima.

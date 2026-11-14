@@ -1,12 +1,24 @@
 # Guida di Social Studio
 
-## Novità di questa versione (0.1.0)
+## Novità di questa versione (0.2.0)
 
-- **Prima versione.** L'app nasce da una richiesta precisa: un solo posto dove partire
-  da un testo, da un link o da un video, e da lì adattare titolo e testo a ogni social
-  e pubblicare.
-- **X/Twitter pubblica davvero**, con l'API ufficiale (OAuth 2.0). Gli altri social
-  restano in **consegna manuale**: l'app prepara tutto, la pubblicazione la fai tu.
+- **Tre reti pubblicano davvero**: X/Twitter (API ufficiale, serve la tua app), e ora
+  **Telegram** e **Mastodon**, collegati con le credenziali già presenti negli altri
+  progetti. Le altre sei restano in consegna manuale.
+- Il tasto di invio ora **dice su quale rete pubblica** (*Pubblica su Telegram*) e la
+  nota sotto mostra **su quale canale o account scriverà**, letto dalla rete prima di
+  inviare qualsiasi cosa.
+- Il tasto non dipende più da una chiamata di rete: se Telegram o Mastodon non
+  rispondono, il tasto resta disponibile e l'avviso lo dice, invece di dichiarare il
+  canale "non collegato".
+- **Cambiare social non perde più quello che hai scritto a mano**: passando a un'altra
+  rete, le correzioni di quella precedente vengono salvate e ritrovate.
+
+## Versione 0.1.0
+
+- **Prima versione.** Un solo posto dove partire da un testo, da un link o da un video,
+  e da lì adattare titolo e testo a ogni social e pubblicare.
+- **X/Twitter pubblica davvero**, con l'API ufficiale (OAuth 2.0).
 - **Due immagini possibili**: la tua, oppure una card generata dall'app con testo nitido.
 - **Nessuna pubblicazione automatica**: l'anteprima non manda niente, e il tasto di
   invio si preme una volta sola dopo aver letto che cosa esce.
@@ -81,15 +93,19 @@ articoli con il link in chiaro, sappi che quell'URL costa tredici volte il resto
 
 | Social | Stato | Come si pubblica |
 |---|---|---|
-| X / Twitter | **collegato** (API ufficiale) | dal tasto *Pubblica su X* |
+| **Telegram** | **collegato** (Bot API) | *Pubblica su Telegram* — con foto diventa una didascalia |
+| **Mastodon** | **collegato** (REST API) | *Pubblica su Mastodon* — caricamento immagine compreso |
+| X / Twitter | client pronto, **manca l'app** | *Pubblica su X* — si accende dopo il collegamento |
 | LinkedIn | manuale | *Anteprima* → *Apri il compositore* |
 | Facebook | manuale | *Anteprima* → copia il testo |
-| Instagram | manuale | serve un'immagine; pubblica dall'app del telefono |
+| Instagram | manuale | serve un'immagine JPEG; pubblica dall'app del telefono |
 | Threads | manuale | *Anteprima* → *Apri il compositore* |
-| Mastodon | manuale | copia il testo nella tua istanza |
 | Bluesky | manuale | *Anteprima* → *Apri il compositore* |
-| Telegram | manuale | copia il testo nel canale |
 | YouTube (post Community) | manuale | non esiste API pubblica per pubblicarlo |
+
+Il tasto di invio è **spento** quando la rete scelta non è pronta, e la ragione è scritta
+sotto (per X: *mancano le credenziali*). Un canale in consegna manuale non sparisce:
+resta in elenco e offre *Apri il compositore*.
 
 Collegare una rete all'API richiede che tu crei una **app sviluppatore** su quella rete e,
 per Meta/TikTok/YouTube, che passi una **revisione**. Si fa una rete alla volta, quando

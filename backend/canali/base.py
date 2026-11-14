@@ -33,6 +33,15 @@ class Canale:
         return [campo for campo, valore in dal_config.items()
                 if not campo.startswith("_") and not valore]
 
+    def pronto(self, conf: dict) -> tuple[bool, str]:
+        """Puo' pubblicare adesso? Decide in locale, senza chiamare la rete."""
+        if not self.collegato:
+            return False, "consegna manuale: si pubblica dal compositore"
+        mancanti = self.credenziali_mancanti(conf)
+        if mancanti:
+            return False, "mancano le credenziali: " + ", ".join(mancanti)
+        return True, ""
+
     # --- due tempi --------------------------------------------------------- #
     def prepara(self, pubblicazione: dict, conf: dict) -> dict:
         return {

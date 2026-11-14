@@ -19,53 +19,90 @@ CONSIGLIO_HASHTAG = {
 }
 
 
-class CanaleX(Canale):
-    def problemi(self, pubblicazione: dict, conf: dict) -> list[dict]:
-        from . import x as ponte
+class CanaleConPonte(Canale):
+    """Un canale che pubblica davvero: il ponte dice l'account e invia.
 
+    Il modulo del ponte si importa dentro i metodi: cosi' l'elenco dei canali si
+    legge anche quando un ponte non e' utilizzabile, e un errore di import non
+    impedisce di disegnare la pagina.
+    """
+
+    nome_modulo = ""
+
+    def ponte(self):
+        from importlib import import_module
+
+        return import_module("canali." + self.nome_modulo)
+
+    def prepara(self, pubblicazione: dict, conf: dict) -> dict:
+        base = super().prepara(pubblicazione, conf)
+        try:
+            base["a_nome_di"] = self.ponte().account(conf)
+        except BaseException as errore:  # i ponti escono con eccezioni proprie o SystemExit
+            base["a_nome_di"] = None
+            gia_detto = any(("credenzial" in x["testo"].lower() or "manca" in x["testo"].lower())
+                            for x in base["problemi"])
+            if not gia_detto:
+                base["problemi"] = base["problemi"] + [{"bloccante": True, "testo": str(errore)}]
+        return base
+
+    def invia(self, pubblicazione: dict, conf: dict) -> dict:
+        problemi = [x for x in self.problemi(pubblicazione, conf) if x.get("bloccante")]
+        if problemi:
+            return {"pubblicato": False, "motivo": problemi[0]["testo"], "problemi": problemi}
+        try:
+            return self.ponte().pubblica(pubblicazione, conf)
+        except BaseException as errore:  # idem: SystemExit non e' un Exception
+            return {"pubblicato": False, "motivo": str(errore)}
+
+
+class CanaleX(CanaleConPonte):
+    nome_modulo = "x"
+
+    def problemi(self, pubblicazione: dict, conf: dict) -> list[dict]:
         problemi = super().problemi(pubblicazione, conf)
-        costo = ponte.costo_stimato(pubblicazione.get("testo", ""))
-        if costo > ponte.COSTO_TESTO_O_MEDIA:
+        costo = self.ponte().costo_stimato(pubblicazione.get("testo", ""))
+        if costo > self.ponte().COSTO_TESTO_O_MEDIA:
             problemi.append({
                 "bloccante": False,
                 "testo": (f"il testo contiene un indirizzo web: su X questo post costa circa "
-                          f"${costo:.2f} invece di ${ponte.COSTO_TESTO_O_MEDIA:.3f}. "
+                          f"${costo:.2f} invece di ${self.ponte().COSTO_TESTO_O_MEDIA:.3f}. "
                           "Se vuoi risparmiare, togli il link dal testo (mettilo nell'immagine "
                           "o in bio) e ripubblica l'anteprima."),
             })
         return problemi
 
     def prepara(self, pubblicazione: dict, conf: dict) -> dict:
-        from . import x as ponte
-
         base = super().prepara(pubblicazione, conf)
-        base["costo_stimato_usd"] = ponte.costo_stimato(pubblicazione.get("testo", ""))
-        try:
-            base["a_nome_di"] = ponte.account(conf)
-        except BaseException as errore:  # il motore esce con SystemExit: va fermato qui
-            base["a_nome_di"] = None
-            gia_detto = any("credenziali" in p["testo"] for p in base["problemi"])
-            if not gia_detto:
-                base["problemi"] = base["problemi"] + [
-                    {"bloccante": True, "testo": str(errore)}
-                ]
+        base["costo_stimato_usd"] = self.ponte().costo_stimato(pubblicazione.get("testo", ""))
         return base
-
-    def invia(self, pubblicazione: dict, conf: dict) -> dict:
-        from . import x as ponte
-
-        problemi = [p for p in self.problemi(pubblicazione, conf) if p.get("bloccante")]
-        if problemi:
-            return {"pubblicato": False, "motivo": problemi[0]["testo"], "problemi": problemi}
-        try:
-            esito = ponte.pubblica(pubblicazione, conf)
-        except BaseException as errore:  # idem: SystemExit non e' un Exception
-            return {"pubblicato": False, "motivo": str(errore)}
-        return esito
 
     def url_compositore(self, pubblicazione: dict) -> str:
         # Testo soltanto: l'intent di X non allega immagini.
         return "https://x.com/intent/post?text=" + _testo_url(pubblicazione.get("testo", ""))
+
+
+class CanaleTelegram(CanaleConPonte):
+    nome_modulo = "telegram"
+
+    def problemi(self, pubblicazione: dict, conf: dict) -> list[dict]:
+        problemi = super().problemi(pubblicazione, conf)
+        if pubblicazione.get("allegati"):
+            return problemi
+        # Senza foto il messaggio arriva a 4096: non bloccare sopra i 1024 della didascalia.
+        testo = pubblicazione.get("testo", "") or ""
+        problemi = [x for x in problemi if "oltre il tetto" not in x["testo"]]
+        if len(testo) > self.limite:
+            problemi.append({
+                "bloccante": False,
+                "testo": ("senza immagine Telegram accetta fino a 4096 caratteri; con la foto "
+                          "allegata la didascalia si ferma a 1024"),
+            })
+        return problemi
+
+
+class CanaleMastodon(CanaleConPonte):
+    nome_modulo = "mastodon"
 
 
 # --------------------------------------------------------------------------- #
@@ -140,8 +177,9 @@ registra(Canale(
     modello_url="https://www.threads.net/intent/post?text={testo}",
 ))
 
-registra(Canale(
+registra(CanaleMastodon(
     chiave="mastodon",
+    collegato=True,
     etichetta="Mastodon",
     limite=500,
     hashtag_max=5,
@@ -164,14 +202,15 @@ registra(Canale(
     modello_url="https://bsky.app/intent/compose?text={testo}",
 ))
 
-registra(Canale(
+registra(CanaleTelegram(
     chiave="telegram",
+    collegato=True,
     etichetta="Telegram",
     limite=1024,
     hashtag_max=0,
     immagine=True,
-    prompt=("Messaggio per un canale Telegram (max 1024 caratteri, perche' con l'immagine "
-            "il testo diventa una didascalia): scorrevole, nessun hashtag."),
+    prompt=("Messaggio per un canale Telegram: scorrevole, nessun hashtag. Con la foto "
+            "allegata il testo diventa una didascalia e si ferma a 1024 caratteri."),
     fonte_limite=("Bot API di Telegram: didascalia con immagine max 1024 caratteri; "
                   "il messaggio di solo testo arriva a 4096"),
     nota_immagine="con la foto allegata la didascalia si ferma a 1024 caratteri",

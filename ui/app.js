@@ -19,6 +19,7 @@ const stato = {
   allegati: [],
   preparazione: null,
   xCollegato: false,
+  statoCanali: {},
 };
 
 const $ = (sel) => document.querySelector(sel);
@@ -363,6 +364,13 @@ async function caricaCanali() {
 }
 
 function scegliCanale(chiave) {
+  // Prima di cambiare canale si salva quello che l'utente ha scritto a mano:
+  // altrimenti bastava guardare un'altra rete per perdere le correzioni.
+  if (stato.canale && stato.canale !== chiave) {
+    const t = $("#adattato-testo").value;
+    const g = $("#adattato-titolo").value;
+    if (t || g) stato.adattati[stato.canale] = { titolo: g, testo: t };
+  }
   stato.canale = chiave;
   $$(".canale").forEach((b) => b.classList.toggle("attivo", b.dataset.canale === chiave));
   const c = stato.canali.find((x) => x.chiave === chiave);
@@ -374,6 +382,30 @@ function scegliCanale(chiave) {
   $("#tasto-adatta").textContent = salvato ? "Riadatta a questo social" : "Adatta a questo social";
   disegnaContatoreAdattato();
   stato.preparazione = null;
+  aggiornaTasti();
+  aggiornaStatoCanale(chiave);
+}
+
+/* Lo stato del collegamento e' del canale scelto, non di X: prima si leggeva
+   "collegato a X" per qualunque rete, e con Telegram e Mastodon attivi il tasto
+   di invio restava spento per colpa di un altro canale. */
+async function aggiornaStatoCanale(chiave) {
+  const c = stato.canali.find((x) => x.chiave === chiave);
+  if (!c || !c.collegato) {
+    stato.statoCanali[chiave] = { collegato: false, manuale: true };
+    aggiornaTasti();
+    return;
+  }
+  try {
+    const controllo = new AbortController();
+    const scadenza = setTimeout(() => controllo.abort(), 10000);
+    stato.statoCanali[chiave] = await chiedi("/api/canale/" + chiave + "/stato",
+                                             { signal: controllo.signal });
+    clearTimeout(scadenza);
+  } catch (e) {
+    // La sonda e' un di piu': se non risponde, si dice e basta. Il tasto resta com'e'.
+    stato.statoCanali[chiave] = { sondaFallita: true, motivo: e.message || "nessuna risposta" };
+  }
   aggiornaTasti();
 }
 
@@ -774,25 +806,29 @@ function disegnaContatoreAdattato() {
 function aggiornaTasti() {
   const c = stato.canali.find((x) => x.chiave === stato.canale);
   const c_e = !!c;
+  const s = stato.statoCanali[stato.canale] || {};
+  // `pronto` e' un fatto locale (client + credenziali presenti), non una sonda di
+  // rete: la sonda serve solo a mostrare su quale account si scrive.
+  const collegato = !!(c_e && c.pronto);
+
   $("#tasto-prepara").disabled = !c_e;
-  $("#tasto-invia").disabled = !c_e || !c.collegato || !stato.xCollegato;
+  $("#tasto-invia").disabled = !collegato;
+  $("#tasto-invia").textContent = collegato ? ("Pubblica su " + c.etichetta) : "Pubblica";
   $("#tasto-apri").disabled = !c_e || !(stato.preparazione && stato.preparazione.url_compositore);
 
   const motivi = [];
   if (!c_e) {
     motivi.push("scegli un social nel punto 4 per preparare o pubblicare");
-  } else if (!c.collegato) {
-    motivi.push(c.etichetta + " non e' collegato all'API: usa Anteprima e poi Apri il compositore");
-  } else if (!stato.xCollegato) {
-    motivi.push("X non e' collegato: accedi dalla scheda Configurazione");
+  } else if (!c.pronto) {
+    motivi.push(c.motivo_pronto || (c.etichetta + " non e' pronto a pubblicare"));
+  } else if (s.motivo) {
+    motivi.push("attenzione: " + s.motivo);
   }
+  if (collegato && s.account) motivi.unshift("scrive su " + s.account);
   motivi.push("pubblica solo quello che leggi nel campo Post");
-  $("#esito-invio").className = "esito-tenue";
-  const nodo = $("#esito-invio");
-  const vecchio = nodo.textContent;
-  if (!vecchio || vecchio.startsWith("manca") || vecchio.startsWith("Per pubblicare")) {
-    nodo.textContent = "Nota: " + motivi.join(" · ");
-  }
+  // Nota permanente, su un elemento suo: prima scriveva sullo stesso posto del
+  // messaggio dell'operazione, e dopo la prima volta non si aggiornava piu'.
+  $("#nota-invio").textContent = "Nota: " + motivi.join(" · ");
 }
 
 /* ------------------------------------------------------ configurazione   */
