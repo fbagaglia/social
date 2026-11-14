@@ -126,6 +126,9 @@ registra(CanaleX(
     prompt=("Post per X/Twitter (max 280 caratteri): diretto e incisivo, 2-3 hashtag, "
             "niente link di condivisione, tono adatto a X."),
     fonte_limite="docs.x.com (limite account senza Premium) e contatori indipendenti",
+    testo_nel_collegamento=True,
+    nota_consegna=("Il compositore si apre con il testo gia' dentro. L'immagine no: usa "
+                   "Copia l'immagine e incolla con Ctrl+V."),
 ))
 
 # --------------------------------------------------------------------------- #
@@ -143,6 +146,9 @@ registra(Canale(
             "NESSUN link di condivisione tipo linkedin.com/sharing."),
     fonte_limite="Contatori indipendenti (novembre 2026): 3.000 caratteri",
     modello_url="https://www.linkedin.com/feed/?shareActive=true&text={testo}",
+    testo_nel_collegamento=True,
+    nota_consegna=("Il compositore si apre con il testo gia' dentro. L'immagine si allega "
+                   "dal tasto immagine di LinkedIn, oppure con Copia l'immagine e Ctrl+V."),
 ))
 
 registra(Canale(
@@ -155,6 +161,9 @@ registra(Canale(
             "3-4 hashtag, call-to-action chiaro. NESSUN link di condivisione."),
     fonte_limite="Documentazione Meta: 63.206 caratteri (tetto ampio, non vincolante)",
     modello_url="https://www.facebook.com/",
+    nota_consegna=("Facebook non ha un indirizzo che precompila il post: il tasto apre il sito "
+                   "e il testo si incolla a mano. Nell'ordine: 1) Copia il testo e incollalo "
+                   "nel riquadro del post, 2) Copia l'immagine e incollala con Ctrl+V."),
 ))
 
 registra(Canale(
@@ -169,6 +178,8 @@ registra(Canale(
     fonte_limite=("Instagram Platform: 2.200 caratteri (contatori indipendenti, nov 2026); "
                   "100 pubblicazioni API ogni 24 ore"),
     nota_immagine="l'API di Instagram pubblica solo JPEG: una PNG viene rifiutata",
+    nota_consegna=("Instagram non ha un compositore web: si pubblica dall'app del telefono. "
+                   "Qui copi la didascalia e l'immagine, e le incolli dal telefono."),
 ))
 
 registra(Canale(
@@ -182,6 +193,8 @@ registra(Canale(
     fonte_limite="Threads API: 500 caratteri, 250 pubblicazioni ogni 24 ore",
     nota_immagine="immagine ammessa fino a 8 MB, JPEG o PNG",
     modello_url="https://www.threads.net/intent/post?text={testo}",
+    testo_nel_collegamento=True,
+    nota_consegna="Il compositore si apre con il testo dentro; l'immagine con Copia l'immagine.",
 ))
 
 registra(CanaleMastodon(
@@ -207,6 +220,9 @@ registra(Canale(
     fonte_limite="AT Protocol: 300 grafemi e 3.000 byte",
     nota_immagine="immagine ammessa fino a 1 MB, al massimo 4 per post",
     modello_url="https://bsky.app/intent/compose?text={testo}",
+    testo_nel_collegamento=True,
+    nota_consegna=("Il compositore si apre con il testo dentro. L'immagine si aggiunge con "
+                   "il tasto immagine di Bluesky."),
 ))
 
 registra(CanaleTelegram(
@@ -221,6 +237,7 @@ registra(CanaleTelegram(
     fonte_limite=("Bot API di Telegram: didascalia con immagine max 1024 caratteri; "
                   "il messaggio di solo testo arriva a 4096"),
     nota_immagine="con la foto allegata la didascalia si ferma a 1024 caratteri",
+    nota_consegna="Pubblica da qui, dal tasto di invio: non serve copiare niente.",
 ))
 
 registra(Canale(
@@ -232,4 +249,6 @@ registra(Canale(
     prompt=("Post per la scheda Community di YouTube (max 1500 caratteri): tono parlato, "
             "invita a guardare il video, 2-3 hashtag."),
     fonte_limite="Limite del compositore Community; nessuna API pubblica per pubblicarlo",
+    nota_consegna=("Il post Community si crea a mano da YouTube Studio: qui copi testo e "
+                   "immagine. Nessuna API pubblica lo permette."),
 ))

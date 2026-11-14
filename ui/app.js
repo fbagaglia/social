@@ -426,6 +426,15 @@ function collegaEventi() {
   $("#tasto-adatta").addEventListener("click", adatta);
   $("#tasto-genera-immagine").addEventListener("click", generaImmagine);
   $("#tasto-togli-immagine").addEventListener("click", togliImmagine);
+  $("#tasto-copia-testo").addEventListener("click", (e) => copiaTestoPost(e.currentTarget));
+  $("#tasto-copia-immagine-2").addEventListener("click", (e) =>
+    immagineSulSistema("/api/allegato/copia").then((fatto) => {
+      if (fatto) {
+        const prima = e.currentTarget.textContent;
+        e.currentTarget.textContent = "Copiata";
+        setTimeout(() => { e.currentTarget.textContent = prima; }, 1500);
+      }
+    }));
   $("#tasto-copia-immagine").addEventListener("click", () => immagineSulSistema("/api/allegato/copia"));
   $("#tasto-cartella-immagine").addEventListener("click", () => immagineSulSistema("/api/allegato/cartella"));
   $("#file-immagine").addEventListener("change", caricaImmagine);
@@ -643,12 +652,17 @@ function mostraImmagine() {
    l'indirizzo del compositore non porta con se' le immagini. */
 async function immagineSulSistema(rotta) {
   const corrente = stato.allegati[0];
-  if (!corrente) { scrivi("#esito-immagine", "Nessuna immagine da usare.", "male"); return; }
+  if (!corrente) {
+    scrivi("#esito-immagine", "Nessuna immagine da usare.", "male");
+    return false;
+  }
   try {
     const esito = await inviaJson(rotta, { percorso: corrente.percorso });
     scrivi("#esito-immagine", esito.ok ? esito.messaggio : esito.motivo, esito.ok ? "ok" : "male");
+    return !!esito.ok;
   } catch (e) {
     scrivi("#esito-immagine", "Non riuscito: " + e.message, "male");
+    return false;
   }
 }
 
@@ -794,6 +808,21 @@ function apriCompositore() {
     : "Compositore aperto col testo dentro.", "ok");
 }
 
+/* Copia il post che uscirebbe ADESSO, letto dal campo: non una copia in memoria. */
+async function copiaTestoPost(tasto) {
+  const testo = testoDelPost();
+  if (!testo) { avviso("Non c'e' ancora un testo da copiare.", true); return; }
+  try {
+    await navigator.clipboard.writeText(testo);
+    const prima = tasto.textContent;
+    tasto.textContent = "Copiato";
+    setTimeout(() => { tasto.textContent = prima; }, 1500);
+    scrivi("#esito-invio", "Testo negli appunti: incollalo nel riquadro del post.", "ok");
+  } catch (e) {
+    avviso("Non riesco a copiare da solo: seleziona il testo nel campo e usa Ctrl+C.", true);
+  }
+}
+
 async function copiaCampo(id, tasto) {
   const nodo = $("#" + id);
   if (!nodo) return;
@@ -841,6 +870,14 @@ function aggiornaTasti() {
   $("#tasto-invia").disabled = !collegato;
   $("#tasto-invia").textContent = collegato ? ("Pubblica su " + c.etichetta) : "Pubblica";
   $("#tasto-apri").disabled = !c_e || !(stato.preparazione && stato.preparazione.url_compositore);
+  $("#tasto-copia-testo").disabled = !c_e;
+  $("#tasto-copia-immagine-2").disabled = !c_e || !stato.allegati.length;
+  // Un tasto che dice "Apri il compositore" quando apre solo il sito e' una bugia:
+  // l'etichetta segue cio' che l'indirizzo porta davvero.
+  $("#tasto-apri").textContent = c_e
+    ? (c.testo_nel_collegamento ? "Apri il compositore" : "Apri " + c.etichetta)
+    : "Apri";
+  $("#nota-consegna").textContent = (c_e && c.nota_consegna) ? c.nota_consegna : "";
 
   const motivi = [];
   if (!c_e) {

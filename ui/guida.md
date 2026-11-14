@@ -1,6 +1,18 @@
 # Guida di Social Studio
 
-## Novità di questa versione (0.3.0)
+## Novità di questa versione (0.4.0)
+
+- **La consegna manuale si spiega da sola.** Scegliendo una rete compare la riga che dice
+  come si consegna il post *su quella rete*: per Facebook "prima il testo, poi l'immagine",
+  per Instagram "si pubblica dall'app del telefono", per Telegram "pubblica da qui".
+- **Il tasto non mente.** Dice *Apri il compositore* solo quando l'indirizzo porta davvero
+  il testo dentro (X, LinkedIn, Threads, Bluesky); per le altre dice *Apri Facebook*,
+  *Apri Instagram*, perché apre soltanto il sito.
+- **`1. Copia il testo` nella zona di invio**, in ordine col tasto dell'immagine: il
+  flusso a copia-incolla sta tutto in un posto e si legge da sinistra a destra.
+- `Copia il testo` copia **quello che hai corretto a mano**, non la versione generata.
+
+## Versione 0.3.0
 
 - **X in modalità compositore, per scelta.** L'API di X è a pagamento e l'app non
   insiste più: prepara testo e immagine, apre il compositore, e l'allegato lo fai tu.
@@ -133,6 +145,21 @@ Facebook, YouTube) il giro è questo:
 Il primo passaggio è anche l'ultimo: **il compositore non porta le immagini** (l'indirizzo
 di X accetta solo testo), quindi l'immagine va sempre allegata a mano. I due tasti nuovi
 servono esattamente a non farla cercare.
+
+**Attenzione all'ordine, quando la rete non precompila il post.** Negli appunti di Windows
+ci sta una cosa per volta: se copi l'immagine, il testo che avevi copiato prima non c'è
+più. Quindi prima **1. Copia il testo** e incollalo nel riquadro del post, poi **Copia
+l'immagine** e incollala. L'app te lo scrive nella riga della consegna, per la rete che hai
+scelto.
+
+**Chi precompila e chi no:**
+
+| Precompilano il testo nell'indirizzo | Aprono solo il sito |
+|---|---|
+| X · LinkedIn · Threads · Bluesky | **Facebook** · Instagram · Mastodon · Telegram · YouTube |
+
+Per le seconde, il tasto dice *Apri Facebook* e non *Apri il compositore*: un'etichetta che
+promette una cosa che non succede è peggio di un'etichetta povera.
 
 **X, in particolare.** L'API di X è a pagamento dal 6 febbraio 2026 (circa 0,015 $ per
 post, e **0,20 $ se il testo contiene un link**). L'app è impostata per **non usarla**:

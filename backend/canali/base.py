@@ -26,6 +26,8 @@ class Canale:
     titolo_etichetta: str = "Titolo / gancio"
     modello_url: str = ""            # compositore web, per la consegna manuale
     motivo_compositore: str = ""     # perche' si scelie il compositore invece dell'API
+    nota_consegna: str = ""          # come si consegna il post a QUESTA rete, in pratica
+    testo_nel_collegamento: bool = False  # l'indirizzo porta il testo dentro?
     nota_immagine: str = ""          # vincolo dell'immagine su quella rete, se c'e'
 
     # --- credenziali ------------------------------------------------------- #
@@ -170,6 +172,8 @@ def elenco() -> list[dict]:
             "fonte_limite": c.fonte_limite,
             "file_immagine": c.file_immagine,
             "nota_immagine": c.nota_immagine,
+            "nota_consegna": c.nota_consegna,
+            "testo_nel_collegamento": c.testo_nel_collegamento,
         }
         for c in REGISTRO.values()
     ]

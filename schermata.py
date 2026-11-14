@@ -4,7 +4,7 @@ import pathlib
 from playwright.sync_api import sync_playwright
 
 BASE = "http://127.0.0.1:8796"
-USCITA = pathlib.Path(__file__).resolve().parent / "profili_prova" / "canale-collegato.png"
+USCITA = pathlib.Path(__file__).resolve().parent / "profili_prova" / "flusso-manuale-x.png"
 
 with sync_playwright() as p:
     b = p.chromium.launch(headless=True)
@@ -19,9 +19,9 @@ with sync_playwright() as p:
         if "Fatto" in pagina.inner_text("#esito-genera"):
             break
         pagina.wait_for_timeout(1000)
-    pagina.click(".canale[data-canale=telegram]")
+    pagina.click(".canale[data-canale=x]")
     for _ in range(40):
-        if "intelligenza artificiale" in pagina.inner_text("#nota-invio"):
+        if "compositore" in pagina.inner_text("#nota-invio"):
             break
         pagina.wait_for_timeout(400)
     pagina.click("#tasto-prepara")
