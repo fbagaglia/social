@@ -1,0 +1,29 @@
+{
+  "_nota": "Copia questo file in config.json e riempi solo i campi che ti servono. config.json non finisce mai in git.",
+  "llm": {
+    "orKey": "",
+    "orModel": "openai/gpt-4o-mini",
+    "orModelAdatta": "",
+    "orUrl": "https://openrouter.ai/api/v1",
+    "temperature": 0.7
+  },
+  "ricerca": {
+    "firecrawlKey": "",
+    "braveKey": "",
+    "attiva": true
+  },
+  "canali": {
+    "x": {
+      "client_id": "",
+      "client_secret": ""
+    },
+    "linkedin": { "access_token": "", "autore": "" },
+    "mastodon": { "istanza": "", "access_token": "" },
+    "bluesky": { "handle": "", "app_password": "" },
+    "telegram": { "bot_token": "", "chat_id": "" }
+  },
+  "pubblicazione": {
+    "lingua": "it",
+    "firma": ""
+  }
+}

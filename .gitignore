@@ -1,8 +1,16 @@
 # Segreti e stato locale: mai in git
+config.json
 .state/
 
-# Bozze e immagini dei post
+# Stato dell'app: allegati, lavoro in corso, registro
+data/
+logs/
+
+# Bozze e immagini del vecchio motore da riga di comando
 outbox/
+
+# Profili usa-e-getta del browser di collaudo
+profili_prova/
 
 __pycache__/
 *.pyc

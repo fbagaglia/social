@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Social Studio</title>
+<link rel="icon" href="/ui/logo.svg">
+<link rel="stylesheet" href="/ui/style.css">
+</head>
+<body>
+
+<header class="intestazione">
+  <div class="marchio">
+    <img src="/ui/logo.svg" alt="" class="marchio-segno">
+    <div>
+      <h1>Social Studio</h1>
+      <p class="motto">Un testo, una immagine, tutti i social — dalla tua macchina.</p>
+    </div>
+  </div>
+  <div class="intestazione-comandi">
+    <button type="button" id="tasto-guida" class="tasto tasto-tenue">&#10067; Guida</button>
+    <span id="riga-stato" class="riga-stato">carico…</span>
+  </div>
+</header>
+
+<nav class="linguette">
+  <button type="button" class="linguetta attiva" data-tab="crea">Crea</button>
+  <button type="button" class="linguetta" data-tab="config">Configurazione</button>
+  <button type="button" class="linguetta" data-tab="registro">Registro</button>
+</nav>
+
+<main>
+
+<!-- ==================== CREA ==================== -->
+<section id="tab-crea" class="area attiva">
+
+  <h2 class="titolo-area">Crea il post</h2>
+
+  <!-- 1 — origine -->
+  <article class="riquadro">
+    <h3 class="sottotitolo-area"><span class="numero">1</span> Da dove parte il testo</h3>
+
+    <div class="segmenti" id="origine-scelta">
+      <button type="button" class="segmento attivo" data-origine="testo">Un testo da rivisitare</button>
+      <button type="button" class="segmento" data-origine="link">Un link</button>
+      <button type="button" class="segmento" data-origine="video">Un video YouTube</button>
+    </div>
+    <p class="spiegazione" id="origine-spiegazione">Incolla il testo che vuoi riscrivere con lo stile che scegli sotto.</p>
+
+    <div id="blocco-testo" class="blocco">
+      <label class="etichetta" for="ingresso-testo">Testo di partenza</label>
+      <textarea id="ingresso-testo" rows="9" placeholder="Incolla qui il testo da rivisitare…"></textarea>
+    </div>
+
+    <div id="blocco-link" class="blocco nascosto">
+      <label class="etichetta" for="ingresso-link">Indirizzo della pagina</label>
+      <input type="url" id="ingresso-link" placeholder="https://francobagaglia.it/blog/…">
+      <button type="button" id="tasto-leggi" class="tasto">Leggi la fonte</button>
+      <p class="esito-tenue" id="esito-lettura"></p>
+    </div>
+
+    <div id="blocco-video" class="blocco nascosto">
+      <label class="etichetta" for="ingresso-video">Indirizzo del video YouTube</label>
+      <input type="url" id="ingresso-video" placeholder="https://www.youtube.com/watch?v=…">
+      <p class="spiegazione">Il testo viene dalla trascrizione automatica del video.</p>
+      <button type="button" id="tasto-leggi-video" class="tasto">Leggi il video</button>
+      <p class="esito-tenue" id="esito-lettura-video"></p>
+    </div>
+  </article>
+
+  <!-- 2 — parametri -->
+  <article class="riquadro">
+    <h3 class="sottotitolo-area"><span class="numero">2</span> Stile e parametri</h3>
+    <div id="modulo-parametri" class="modulo"></div>
+    <div class="barra-comandi">
+      <button type="button" id="tasto-predefiniti" class="tasto tasto-tenue">Ripristina i predefiniti</button>
+    </div>
+  </article>
+
+  <!-- 3 — titolo e testo -->
+  <article class="riquadro">
+    <h3 class="sottotitolo-area"><span class="numero">3</span> Titolo e testo</h3>
+    <div class="barra-comandi">
+      <button type="button" id="tasto-genera" class="tasto tasto-forte">Genera titolo e testo</button>
+      <span class="esito-tenue" id="esito-genera"></span>
+    </div>
+
+    <label class="etichetta" for="campo-titolo">Titolo</label>
+    <div class="riga-campo">
+      <input type="text" id="campo-titolo" placeholder="Il titolo del testo">
+      <button type="button" class="tasto tasto-minuto" data-copia="campo-titolo">Copia</button>
+    </div>
+
+    <label class="etichetta" for="campo-testo">Testo</label>
+    <div class="riga-campo">
+      <textarea id="campo-testo" rows="12" placeholder="Qui arriva il testo generato. Puoi correggerlo a mano: quello che pubblichi e' quello che leggi qui."></textarea>
+      <button type="button" class="tasto tasto-minuto" data-copia="campo-testo">Copia</button>
+    </div>
+    <p class="contatore" id="contatore-base"></p>
+  </article>
+
+  <!-- 4 — adatta al social -->
+  <article class="riquadro">
+    <h3 class="sottotitolo-area"><span class="numero">4</span> Adatta al social</h3>
+    <p class="spiegazione">Scegli la rete: titolo e testo vengono riscritti con le sue regole e il suo tetto di caratteri. Ogni versione resta modificabile.</p>
+    <div class="griglia-canali" id="griglia-canali"></div>
+
+    <div id="blocco-adattato" class="nascosto">
+      <div class="intestazione-adattato">
+        <strong id="adattato-nome"></strong>
+        <span class="contatore" id="adattato-contatore"></span>
+      </div>
+      <div class="barra-comandi">
+        <button type="button" id="tasto-adatta" class="tasto tasto-forte">Adatta a questo social</button>
+        <span class="esito-tenue" id="esito-adatta"></span>
+      </div>
+
+      <label class="etichetta" for="adattato-titolo">Titolo / gancio</label>
+      <div class="riga-campo">
+        <input type="text" id="adattato-titolo">
+        <button type="button" class="tasto tasto-minuto" data-copia="adattato-titolo">Copia</button>
+      </div>
+
+      <label class="etichetta" for="adattato-testo">Post</label>
+      <div class="riga-campo">
+        <textarea id="adattato-testo" rows="8"></textarea>
+        <button type="button" class="tasto tasto-minuto" data-copia="adattato-testo">Copia</button>
+      </div>
+    </div>
+  </article>
+
+  <!-- 5 — immagine -->
+  <article class="riquadro">
+    <h3 class="sottotitolo-area"><span class="numero">5</span> Immagine</h3>
+    <p class="spiegazione">Puoi caricare una tua immagine, oppure farne generare una dall'app: grafica con testo nitido, non generata da un modello.</p>
+    <div class="griglia-immagine">
+      <div>
+        <label class="etichetta" for="file-immagine">Carica una immagine</label>
+        <input type="file" id="file-immagine" accept="image/png,image/jpeg,image/webp,image/gif">
+        <hr class="separatore">
+        <label class="etichetta" for="imm-titolo">Oppure genera: titolo nella card</label>
+        <input type="text" id="imm-titolo" placeholder="Titolo grande nell'immagine">
+        <label class="etichetta" for="imm-sottotitolo">Riga sotto</label>
+        <input type="text" id="imm-sottotitolo" placeholder="Una riga di contesto (facoltativa)">
+        <label class="etichetta" for="imm-formato">Formato</label>
+        <select id="imm-formato">
+          <option value="orizzontale">Orizzontale 16:9 (X, LinkedIn, Facebook)</option>
+          <option value="quadrato">Quadrato (Instagram, Threads)</option>
+          <option value="verticale">Verticale 4:5 (feed Instagram)</option>
+        </select>
+        <button type="button" id="tasto-genera-immagine" class="tasto">Genera l'immagine</button>
+      </div>
+      <div class="anteprima-immagine">
+        <img id="immagine-corrente" alt="Nessuna immagine allegata" class="nascosto">
+        <p class="esito-tenue" id="esito-immagine">Nessuna immagine allegata.</p>
+        <button type="button" id="tasto-togli-immagine" class="tasto tasto-tenue" disabled>Rimuovi l'immagine</button>
+      </div>
+    </div>
+  </article>
+
+  <!-- 6 — anteprima e invio -->
+  <article class="riquadro">
+    <h3 class="sottotitolo-area"><span class="numero">6</span> Anteprima e invio</h3>
+    <p class="spiegazione">L'anteprima non manda niente: dice che cosa uscirebbe, a nome di chi e con quali problemi. Si pubblica solo dopo, con un secondo gesto.</p>
+    <div class="barra-comandi">
+      <button type="button" id="tasto-prepara" class="tasto tasto-forte" disabled>Anteprima</button>
+      <button type="button" id="tasto-invia" class="tasto tasto-pericolo" disabled>Pubblica su X</button>
+      <button type="button" id="tasto-apri" class="tasto tasto-tenue" disabled>Apri il compositore</button>
+      <span class="esito-tenue" id="esito-invio"></span>
+    </div>
+    <div id="anteprima-esito" class="anteprima-esito nascosto"></div>
+  </article>
+
+</section>
+
+<!-- ==================== CONFIGURAZIONE ==================== -->
+<section id="tab-config" class="area">
+  <h2 class="titolo-area">Configurazione</h2>
+
+  <article class="riquadro">
+    <h3 class="sottotitolo-area"><span class="numero">1</span> Modello e ricerca web</h3>
+    <p class="spiegazione">La generazione passa da OpenRouter. Senza chiave l'app non inventa contenuti: si ferma e lo dice.</p>
+    <div id="modulo-llm" class="modulo"></div>
+    <div class="barra-comandi">
+      <button type="button" id="tasto-salva-llm" class="tasto tasto-forte">Salva</button>
+      <span class="esito-tenue" id="esito-llm"></span>
+    </div>
+  </article>
+
+  <article class="riquadro">
+    <h3 class="sottotitolo-area"><span class="numero">2</span> X / Twitter</h3>
+    <p class="spiegazione">Serve una app creata su console.x.com con OAuth 2.0 attivo e questo callback registrato esattamente: <code>http://localhost:8080/callback</code></p>
+    <div id="modulo-x" class="modulo"></div>
+    <div class="barra-comandi">
+      <button type="button" id="tasto-salva-x" class="tasto tasto-forte">Salva</button>
+      <button type="button" id="tasto-login-x" class="tasto">Accedi a X</button>
+      <span class="esito-tenue" id="esito-x"></span>
+    </div>
+    <p class="esito-tenue" id="stato-x"></p>
+  </article>
+
+  <article class="riquadro">
+    <h3 class="sottotitolo-area"><span class="numero">3</span> Firma e lingua</h3>
+    <div id="modulo-firma" class="modulo"></div>
+    <div class="barra-comandi">
+      <button type="button" id="tasto-salva-firma" class="tasto tasto-forte">Salva</button>
+      <span class="esito-tenue" id="esito-firma"></span>
+    </div>
+  </article>
+
+  <article class="riquadro">
+    <h3 class="sottotitolo-area"><span class="numero">4</span> Gli altri social</h3>
+    <p class="spiegazione">LinkedIn, Facebook, Instagram, Threads, Mastodon, Bluesky, Telegram e YouTube restano in consegna manuale: l'app prepara titolo, testo e immagine, e la pubblicazione la fai tu dal compositore. Collegarli richiede un'app sviluppatore approvata su ciascuna rete: si fa una rete alla volta, quando serve davvero.</p>
+  </article>
+</section>
+
+<!-- ==================== REGISTRO ==================== -->
+<section id="tab-registro" class="area">
+  <h2 class="titolo-area">Registro delle pubblicazioni</h2>
+  <p class="spiegazione">Che cosa e' uscito davvero, con il collegamento al post. Si legge dal disco, non da X.</p>
+  <div class="barra-comandi">
+    <button type="button" id="tasto-aggiorna-registro" class="tasto tasto-tenue">Aggiorna</button>
+  </div>
+  <div id="elenco-registro" class="elenco-registro"></div>
+</section>
+
+</main>
+
+<!-- finestra unica, riusata da guida e contenuti lunghi -->
+<div id="velo" class="velo nascosto">
+  <div class="finestra">
+    <header class="finestra-testa">
+      <h3 id="finestra-titolo">Guida</h3>
+      <button type="button" id="finestra-chiudi" class="tasto tasto-tenue">Chiudi</button>
+    </header>
+    <div id="finestra-corpo" class="finestra-corpo"></div>
+    <footer class="finestra-piede">
+      <button type="button" id="finestra-chiudi-2" class="tasto tasto-forte">Chiudi</button>
+    </footer>
+  </div>
+</div>
+
+<div id="avvisi" class="avvisi" role="alert"></div>
+
+<script src="/ui/app.js"></script>
+</body>
+</html>
