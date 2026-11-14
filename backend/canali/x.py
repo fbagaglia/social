@@ -42,6 +42,20 @@ def _config_x(conf: dict) -> tuple[str, str]:
             "crea l'app su https://console.x.com con OAuth 2.0 e callback "
             + xconf.REDIRECT_URI
         )
+    # Errore classico: nella stessa pagina ci sono SEI valori, e si prende quello
+    # sbagliato. Qui si riconosce il piu' frequente e lo si dice, invece di lasciare
+    # un 401 incomprensibile dopo il login.
+    if client_id.startswith("AAAA"):
+        raise xconf.ConfigError(
+            "Nel campo Client ID c'e' il BEARER TOKEN. Sono due valori diversi: il Client ID "
+            "sta nella sezione 'Keys and tokens' ed e' la riga 'Client ID' (di solito finisce "
+            "con ':1:ci'). Il Bearer serve solo a leggere dati pubblici e non puo' pubblicare."
+        )
+    if " " in client_id or client_id.startswith("http"):
+        raise xconf.ConfigError(
+            "Nel campo Client ID non c'e' un identificativo: sembra un indirizzo o una frase. "
+            "Copia solo il valore della riga 'Client ID'."
+        )
     os.environ["X_CLIENT_ID"] = client_id
     if client_secret:
         os.environ["X_CLIENT_SECRET"] = client_secret
