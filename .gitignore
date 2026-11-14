@@ -1,0 +1,9 @@
+# Segreti e stato locale: mai in git
+.state/
+
+# Bozze e immagini dei post
+outbox/
+
+__pycache__/
+*.pyc
+.venv/
