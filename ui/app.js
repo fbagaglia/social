@@ -20,6 +20,7 @@ const stato = {
   preparazione: null,
   xCollegato: false,
   statoCanali: {},
+  blog: null,
 };
 
 const $ = (sel) => document.querySelector(sel);
@@ -384,6 +385,13 @@ function scegliCanale(chiave) {
   stato.preparazione = null;
   aggiornaTasti();
   aggiornaStatoCanale(chiave);
+
+  // Il pannello dell'articolo compare solo se la destinazione e' un blog: per i social
+  // resta nascosto, e con lui i pezzi che solo un articolo ha.
+  const blog = canaleBlog();
+  $("#pannello-blog").classList.toggle("nascosto", !blog);
+  $("#blog-esito-bozza").classList.add("nascosto");
+  if (blog) caricaBlogStato();
 }
 
 /* Lo stato del collegamento e' del canale scelto, non di X: prima si leggeva
@@ -444,6 +452,15 @@ function collegaEventi() {
   $("#tasto-guida").addEventListener("click", apriGuida);
   $("#finestra-chiudi").addEventListener("click", chiudiFinestra);
   $("#finestra-chiudi-2").addEventListener("click", chiudiFinestra);
+  $("#tasto-genera-articolo").addEventListener("click", blogGeneraArticolo);
+  $("#blog-genera-faq").addEventListener("click", blogGeneraFaq);
+  $("#blog-aggiorna-anteprima").addEventListener("click", aggiornaAnteprimaFaq);
+  $("#blog-genera-seo").addEventListener("click", blogGeneraSeo);
+  $("#blog-aggiungi-immagine").addEventListener("click", blogAggiungiImmagine);
+  $("#blog-seo-title").addEventListener("input", disegnaContatoriSeo);
+  $("#blog-seo-description").addEventListener("input", disegnaContatoriSeo);
+  $("#blog-gancio").addEventListener("input", programmaSalvataggio);
+  $("#blog-sintesi").addEventListener("input", programmaSalvataggio);
   $("#velo").addEventListener("click", (e) => { if (e.target.id === "velo") chiudiFinestra(); });
   document.addEventListener("keydown", (e) => { if (e.key === "Escape") chiudiFinestra(); });
   $$("[data-copia]").forEach((b) => {
@@ -695,12 +712,29 @@ function titoloDelPost() {
 }
 
 function pacchetto() {
-  return {
+  const corpo = {
     canale: stato.canale,
     titolo: titoloDelPost(),
     testo: testoDelPost(),
     allegati: stato.allegati.map((a) => a.percorso),
   };
+  if (canaleBlog()) {
+    const b = statoBlog();
+    Object.assign(corpo, {
+      gancio: $("#blog-gancio").value.trim(),
+      sintesi: $("#blog-sintesi").value.trim(),
+      slug: $("#blog-slug").value.trim(),
+      focus_keyword: $("#blog-focus-keyword").value.trim(),
+      seo_title: $("#blog-seo-title").value.trim(),
+      seo_description: $("#blog-seo-description").value.trim(),
+      intro_faq: b.intro_faq,
+      faq: b.faq,
+      categorie: Array.from($("#blog-categorie").selectedOptions).map((o) => Number(o.value)),
+      immagini_corpo: b.immagini_corpo.map((x) => x.percorso),
+      alt_immagini: b.immagini_corpo.map((x) => ({ file: x.percorso, alt: x.alt || "" })),
+    });
+  }
+  return corpo;
 }
 
 async function prepara() {
@@ -727,18 +761,44 @@ function disegnaAnteprima(p) {
   scatola.classList.toggle("ok-anteprima", bloccanti.length === 0);
 
   const titolo = document.createElement("h4");
-  titolo.textContent = "Che cosa uscirebbe";
+  titolo.textContent = p.tipo === "blog" ? "Che cosa verrebbe depositato" : "Che cosa uscirebbe";
   scatola.appendChild(titolo);
 
-  const righe = [
-    ["Social", p.etichetta],
-    ["A nome di", p.a_nome_di || (p.collegato ? "account non collegato" : "consegna manuale")],
-    ["Titolo", p.titolo || "(nessuno)"],
-    ["Misure", p.misure.caratteri + " / " + p.misure.limite + " caratteri" +
-      (p.misure.entro ? "" : " — oltre il tetto di " + (p.misure.caratteri - p.misure.limite))],
-    ["Allegati", (p.allegati && p.allegati.length) ? p.allegati.join(", ") : "nessuno"],
-  ];
-  if (p.costo_stimato_usd != null) righe.push(["Costo stimato", "~" + p.costo_stimato_usd.toFixed(3) + " USD"]);
+  // Il blog non e' un social: le righe utili sono altre. «A nome di» e «costo» non
+  // dicono niente per un articolo, mentre contano i paragrafi, le sezioni, le FAQ e
+  // se i due campi SEO stanno dentro i loro tetti (60 e 160).
+  const m = p.misure || {};
+  let righe;
+  if (p.tipo === "blog") {
+    const seo_t = (m.seo_title || {}).caratteri || 0;
+    const seo_d = (m.seo_description || {}).caratteri || 0;
+    const faq = p.faq || 0;
+    righe = [
+      ["Destinazione", p.etichetta + " (WordPress)"],
+      ["Cosa succede", "si deposita una BOZZA: non esce niente in pubblico"],
+      ["Titolo", p.titolo || "(nessuno)"],
+      ["Corpo", (p.paragrafi || 0) + " paragrafi \u00b7 " + ((p.sezioni || []).length) + " sezioni"],
+      ["FAQ", faq ? (faq + " domande, a scomparsa") : "nessuna: la sezione non verra' creata"],
+      ["SEO title", seo_t + " / 60 caratteri" + (seo_t > 60 ? " \u2014 oltre il tetto" : "")],
+      ["Meta description", seo_d + " / 160 caratteri" + (seo_d > 160 ? " \u2014 oltre il tetto" : "")],
+      ["Copertina", (p.copertina && p.copertina.length) ? p.copertina.join(", ") : "nessuna"],
+      ["Immagini nel corpo", (p.immagini_corpo && p.immagini_corpo.length)
+        ? p.immagini_corpo.join(", ") : "nessuna"],
+      ["Categorie", (p.categorie && p.categorie.length) ? p.categorie.join(", ") : "nessuna"],
+    ];
+  } else {
+    righe = [
+      ["Social", p.etichetta],
+      ["A nome di", p.a_nome_di || (p.collegato ? "account non collegato" : "consegna manuale")],
+      ["Titolo", p.titolo || "(nessuno)"],
+      ["Misure", m.caratteri + " / " + m.limite + " caratteri" +
+        (m.entro ? "" : " \u2014 oltre il tetto di " + (m.caratteri - m.limite))],
+      ["Allegati", (p.allegati && p.allegati.length) ? p.allegati.join(", ") : "nessuno"],
+    ];
+    if (p.costo_stimato_usd != null) {
+      righe.push(["Costo stimato", "~" + p.costo_stimato_usd.toFixed(3) + " USD"]);
+    }
+  }
   righe.forEach(([k, v]) => {
     const r = document.createElement("p");
     r.className = "riga";
@@ -771,18 +831,40 @@ async function invia() {
   if (!stato.canale) return;
   const corpo = pacchetto();
   const nome = (stato.canali.find((c) => c.chiave === stato.canale) || {}).etichetta || stato.canale;
-  const conferma = window.confirm(
-    "Pubblico davvero su " + nome + "?\n\n" + corpo.testo.slice(0, 400) +
-    (corpo.testo.length > 400 ? "…" : "") +
-    "\n\n(allegati: " + (corpo.allegati.length || "nessuno") + ")");
+  const blog = canaleBlog();
+
+  // Il blog non pubblica: deposita una bozza. La domanda da fare e' un'altra, e va
+  // detta: chi legge "Pubblica" e si trova una bozza non ha capito, chi legge "bozza"
+  // e si trova online ha perso qualcosa.
+  let domanda;
+  if (blog) {
+    const righe = corpo.testo.split("\n").map((r) => r.trim()).filter(Boolean);
+    const sezioni = righe.filter((r) => r.startsWith("## ")).length;
+    domanda = "Creo la BOZZA su " + nome + "?\n\n" +
+      "Il sito non pubblica niente: la bozza resta da rivedere e la pubblichi tu da wp-admin.\n\n" +
+      "\u2022 Titolo: " + (corpo.titolo || "(nessuno)") + "\n" +
+      "\u2022 Corpo: " + (righe.length - sezioni) + " paragrafi, " + sezioni + " sezioni\n" +
+      "\u2022 FAQ: " + corpo.faq.length + " domande\n" +
+      "\u2022 Copertina: " + (corpo.allegati.length ? "si'" : "no") +
+      " \u00b7 immagini nel corpo: " + corpo.immagini_corpo.length;
+  } else {
+    domanda = "Pubblico davvero su " + nome + "?\n\n" + corpo.testo.slice(0, 400) +
+      (corpo.testo.length > 400 ? "\u2026" : "") +
+      "\n\n(allegati: " + (corpo.allegati.length || "nessuno") + ")";
+  }
+  const conferma = window.confirm(domanda);
   if (!conferma) { scrivi("#esito-invio", "Annullato: non e' stato pubblicato niente."); return; }
 
-  scrivi("#esito-invio", "Sto pubblicando…");
+  scrivi("#esito-invio", blog ? "Sto componendo e depositando la bozza\u2026" : "Sto pubblicando\u2026");
   $("#tasto-invia").disabled = true;
   try {
     const risposta = await inviaJson("/api/invia", corpo);
     const e = risposta.esito || {};
-    if (e.pubblicato) {
+    if (e.pubblicato && e.bozza) {
+      scrivi("#esito-invio", "Bozza creata: ID " + e.id, "ok");
+      mostraBozza(e);
+      caricaRegistro();
+    } else if (e.pubblicato) {
       scrivi("#esito-invio", "Pubblicato: " + e.permalink, "ok");
       avviso("Pubblicato su " + nome + ": " + e.permalink);
       caricaRegistro();
@@ -866,12 +948,17 @@ function aggiornaTasti() {
   // rete: la sonda serve solo a mostrare su quale account si scrive.
   const collegato = !!(c_e && c.pronto);
 
+  const blog = canaleBlog();
   $("#tasto-prepara").disabled = !c_e;
   $("#tasto-invia").disabled = !collegato;
-  $("#tasto-invia").textContent = collegato ? ("Pubblica su " + c.etichetta) : "Pubblica";
+  // Per il blog il tasto non "pubblica": deposita una bozza. Chiamarlo "Pubblica"
+  // sarebbe la bugia peggiore di tutta l'interfaccia.
+  $("#tasto-invia").textContent = collegato
+    ? (blog ? "Deposita la bozza su " + c.etichetta : "Pubblica su " + c.etichetta)
+    : (blog ? "Deposita la bozza" : "Pubblica");
   $("#tasto-apri").disabled = !c_e || !(stato.preparazione && stato.preparazione.url_compositore);
-  $("#tasto-copia-testo").disabled = !c_e;
-  $("#tasto-copia-immagine-2").disabled = !c_e || !stato.allegati.length;
+  $("#tasto-copia-testo").disabled = !c_e || !!blog;
+  $("#tasto-copia-immagine-2").disabled = !c_e || !!blog || !stato.allegati.length;
   // Un tasto che dice "Apri il compositore" quando apre solo il sito e' una bugia:
   // l'etichetta segue cio' che l'indirizzo porta davvero.
   $("#tasto-apri").textContent = c_e
@@ -1121,4 +1208,285 @@ async function riprendiCorrente() {
   await caricaConfig();
   if (dati.canale) scegliCanale(dati.canale);
   if (dati.testo) avviso("Ho ripreso il lavoro dell'ultima volta.");
+}
+
+
+/* ==================================================================== blog */
+
+/* Il blog non e' un social: ha un pannello suo, che compare solo quando la
+   destinazione e' un articolo. Queste funzioni non si mescolano con quelle dei
+   post: leggono e scrivono campi che i social non hanno. */
+
+function canaleBlog() {
+  const c = stato.canali.find((x) => x.chiave === stato.canale);
+  return c && c.tipo === "blog" ? c : null;
+}
+
+function statoBlog() {
+  if (!stato.blog) {
+    stato.blog = { faq: [], intro_faq: "", immagini_corpo: [], categorie: [],
+                   html_faq: "", blocco_faq: "" };
+  }
+  return stato.blog;
+}
+
+async function caricaBlogStato() {
+  scrivi("#blog-stato", "Guardo il collegamento con il sito\u2026");
+  try {
+    const s = await chiedi("/api/blog/stato");
+    const b = statoBlog();
+    if (!s.ok) { scrivi("#blog-stato", s.motivo || "canale non disponibile", "male"); return; }
+    scrivi("#blog-stato",
+      "Collegato a " + s.sito + ": " + s.pubblicati + " articoli pubblicati, " +
+      s.bozze + " bozze in attesa. Qui si deposita una bozza, mai una pubblicazione.", "ok");
+    b.categorie = s.categorie || [];
+    $("#blog-categorie").innerHTML = b.categorie
+      .map((c) => '<option value="' + c.id + '">' + scappa(c.nome) + "</option>").join("");
+  } catch (e) {
+    scrivi("#blog-stato", "Non riesco a leggere lo stato del sito: " + e.message, "male");
+  }
+}
+
+async function blogGeneraArticolo() {
+  if (!stato.fonte) {
+    scrivi("#esito-genera", "Prima leggi la fonte (testo, link o video) nel punto 1.", "male");
+    return;
+  }
+  scrivi("#esito-genera", "Sto scrivendo l'articolo\u2026 (puo' volerci un minuto)");
+  $("#tasto-genera-articolo").disabled = true;
+  try {
+    const esito = await inviaJson("/api/blog/articolo",
+                                  { fonte: stato.fonte, parametri: leggiModulo() });
+    if (!esito.ok) { scrivi("#esito-genera", esito.motivo, "male"); return; }
+    $("#campo-titolo").value = esito.titolo;
+    $("#campo-testo").value = esito.testo;
+    $("#blog-gancio").value = esito.gancio;
+    $("#blog-sintesi").value = esito.sintesi;
+    $("#blog-slug").value = esito.slug;
+    disegnaContatoreBase();
+    const quante = (esito.sezioni || []).length;
+    scrivi("#esito-genera",
+      "Articolo scritto: " + esito.paragrafi + " paragrafi, " + quante + " sezioni. " +
+      "Correggilo qui sotto: quello che pubblichi e' quello che leggi.", "ok");
+    if (esito.orfani && esito.orfani.length) {
+      avviso("Attenzione: " + esito.orfani.length + " titolo/i di sezione senza testo sotto: " +
+             esito.orfani.join(" · "), true);
+    }
+  } catch (e) {
+    scrivi("#esito-genera", "Non riuscito: " + e.message, "male");
+  } finally {
+    $("#tasto-genera-articolo").disabled = false;
+    programmaSalvataggio();
+  }
+}
+
+async function blogGeneraFaq() {
+  const testo = testoDelPost();
+  if (!testo) { scrivi("#blog-esito-faq", "Prima serve il testo dell'articolo.", "male"); return; }
+  scrivi("#blog-esito-faq", "Sto scrivendo le domande\u2026");
+  $("#blog-genera-faq").disabled = true;
+  try {
+    const esito = await inviaJson("/api/blog/faq",
+                                  { testo: testo, titolo: titoloDelPost() });
+    const b = statoBlog();
+    if (!esito.ok) {
+      scrivi("#blog-esito-faq", esito.motivo || "Non riuscito.", "male");
+      if (esito.faq) { b.faq = esito.faq; disegnaBlogFaq(); }
+      return;
+    }
+    b.faq = esito.faq;
+    b.html_faq = esito.html;
+    b.blocco_faq = esito.blocco;
+    scrivi("#blog-esito-faq",
+      esito.quante + " domande. Puoi correggerle qui sotto: l'anteprima segue.", "ok");
+    disegnaBlogFaq();
+  } catch (e) {
+    scrivi("#blog-esito-faq", "Non riuscito: " + e.message, "male");
+  } finally {
+    $("#blog-genera-faq").disabled = false;
+  }
+}
+
+function disegnaBlogFaq() {
+  const b = statoBlog();
+  const nodo = $("#blog-faq-lista");
+  if (!nodo) return;
+  const pezzi = [
+    '<label for="blog-faq-intro">Frase di apertura della sezione <span class="esito-tenue">facoltativa</span></label>',
+    '<textarea id="blog-faq-intro" rows="2" placeholder="Che cosa rispondono queste domande">' +
+      scappa(b.intro_faq || "") + "</textarea>",
+  ];
+  b.faq.forEach((voce, i) => {
+    pezzi.push('<div class="coppia-faq">' +
+      '<label>Domanda ' + (i + 1) + "</label>" +
+      '<input type="text" data-faq-d="' + i + '" value="' + scappa(voce.domanda) + '">' +
+      "<label>Risposta</label>" +
+      '<textarea rows="3" data-faq-r="' + i + '">' + scappa(voce.risposta) + "</textarea>" +
+      '<button type="button" class="tasto tasto-tenue" data-faq-togli="' + i + '">Togli questa domanda</button>' +
+      "</div>");
+  });
+  nodo.innerHTML = pezzi.join("");
+
+  const intro = $("#blog-faq-intro");
+  if (intro) {
+    intro.addEventListener("input", () => {
+      statoBlog().intro_faq = intro.value;
+      programmaSalvataggio();
+    });
+  }
+  nodo.querySelectorAll("[data-faq-d]").forEach((n) =>
+    n.addEventListener("input", () => {
+      statoBlog().faq[Number(n.dataset.faqD)].domanda = n.value;
+      programmaAggiornamentoAnteprima();
+    }));
+  nodo.querySelectorAll("[data-faq-r]").forEach((n) =>
+    n.addEventListener("input", () => {
+      statoBlog().faq[Number(n.dataset.faqR)].risposta = n.value;
+      programmaAggiornamentoAnteprima();
+    }));
+  nodo.querySelectorAll("[data-faq-togli]").forEach((n) =>
+    n.addEventListener("click", () => {
+      statoBlog().faq.splice(Number(n.dataset.faqTogli), 1);
+      disegnaBlogFaq();
+    }));
+
+  $("#blog-aggiorna-anteprima").disabled = !b.faq.length;
+  aggiornaAnteprimaFaq();
+}
+
+let attesaAnteprima = null;
+function programmaAggiornamentoAnteprima() {
+  clearTimeout(attesaAnteprima);
+  attesaAnteprima = setTimeout(aggiornaAnteprimaFaq, 700);
+}
+
+async function aggiornaAnteprimaFaq() {
+  const b = statoBlog();
+  const chiare = b.faq.filter((v) => v.domanda.trim() && v.risposta.trim());
+  if (!chiare.length) {
+    $("#blog-faq-anteprima").innerHTML = "";
+    $("#blog-faq-html").value = "";
+    return;
+  }
+  try {
+    const esito = await inviaJson("/api/blog/faq-html", { faq: chiare });
+    if (!esito.ok) { scrivi("#blog-esito-faq", esito.motivo, "male"); return; }
+    // L'anteprima E' il markup che si pubblica: non due cose che possono divergere.
+    $("#blog-faq-anteprima").innerHTML = esito.html;
+    $("#blog-faq-html").value = esito.blocco;
+    b.blocco_faq = esito.blocco;
+  } catch (e) {
+    scrivi("#blog-esito-faq", "Anteprima non riuscita: " + e.message, "male");
+  }
+}
+
+async function blogGeneraSeo() {
+  const testo = testoDelPost();
+  if (!testo) { scrivi("#blog-esito-seo", "Prima serve il testo dell'articolo.", "male"); return; }
+  scrivi("#blog-esito-seo", "Sto scrivendo i campi SEO\u2026");
+  $("#blog-genera-seo").disabled = true;
+  try {
+    const esito = await inviaJson("/api/blog/seo", {
+      titolo: titoloDelPost(), testo: testo, sintesi: $("#blog-sintesi").value.trim(),
+    });
+    if (!esito.ok) { scrivi("#blog-esito-seo", esito.motivo, "male"); return; }
+    $("#blog-seo-title").value = esito.seo_title;
+    $("#blog-seo-description").value = esito.seo_description;
+    $("#blog-focus-keyword").value = esito.focus_keyword;
+    if (!$("#blog-slug").value) $("#blog-slug").value = esito.slug || "";
+    disegnaContatoriSeo();
+    const nota = esito.corretto_dopo_sforamento
+      ? " Il modello aveva sforato: l'ho fatto riscrivere." : "";
+    scrivi("#blog-esito-seo", "Fatto." + nota + " I tetti sono misurati qui, non stimati.", "ok");
+  } catch (e) {
+    scrivi("#blog-esito-seo", "Non riuscito: " + e.message, "male");
+  } finally {
+    $("#blog-genera-seo").disabled = false;
+    programmaSalvataggio();
+  }
+}
+
+function disegnaContatoriSeo() {
+  const titolo = $("#blog-seo-title").value.length;
+  const descrizione = $("#blog-seo-description").value.length;
+  const t = $("#blog-seo-title-contatore");
+  const d = $("#blog-seo-description-contatore");
+  t.textContent = titolo + " / 60";
+  t.classList.toggle("oltre", titolo > 60);
+  d.textContent = descrizione + " / 160";
+  d.classList.toggle("oltre", descrizione > 160);
+}
+
+function disegnaBlogImmagini() {
+  const b = statoBlog();
+  const nodo = $("#blog-immagini");
+  if (!nodo) return;
+  nodo.innerHTML = b.immagini_corpo.map((im, i) =>
+    '<div class="allegato-mini">' +
+      '<img src="/api/allegati/' + encodeURIComponent(im.nome) + '?t=' + Date.now() + '" alt="">' +
+      '<span class="esito-tenue">' + scappa(im.nome) + "</span>" +
+      '<label>testo alternativo (alt)</label>' +
+      '<input type="text" data-img-alt="' + i + '" value="' + scappa(im.alt || "") + '" ' +
+        'placeholder="Che cosa mostra questa immagine">' +
+      '<button type="button" class="tasto tasto-tenue" data-img-togli="' + i + '">Rimuovi</button>' +
+    "</div>").join("");
+  nodo.querySelectorAll("[data-img-alt]").forEach((n) =>
+    n.addEventListener("input", () => {
+      statoBlog().immagini_corpo[Number(n.dataset.imgAlt)].alt = n.value;
+      programmaSalvataggio();
+    }));
+  nodo.querySelectorAll("[data-img-togli]").forEach((n) =>
+    n.addEventListener("click", () => {
+      statoBlog().immagini_corpo.splice(Number(n.dataset.imgTogli), 1);
+      disegnaBlogImmagini();
+    }));
+}
+
+async function blogAggiungiImmagine() {
+  const b = statoBlog();
+  if (b.immagini_corpo.length >= 2) {
+    scrivi("#blog-esito-immagine", "Le immagini nel corpo sono al massimo due.", "male");
+    return;
+  }
+  const file = $("#blog-file-immagine").files[0];
+  if (!file) { scrivi("#blog-esito-immagine", "Scegli prima un file.", "male"); return; }
+  scrivi("#blog-esito-immagine", "Sto caricando\u2026");
+  try {
+    const dati = new FormData();
+    dati.append("media", file, file.name);
+    const risposta = await fetch("/api/immagine/carica",
+                                { method: "POST", headers: INTESTAZIONE, body: dati });
+    const esito = await risposta.json();
+    if (!esito.ok) { scrivi("#blog-esito-immagine", esito.motivo, "male"); return; }
+    b.immagini_corpo.push(Object.assign({}, esito, { alt: "" }));
+    $("#blog-file-immagine").value = "";
+    disegnaBlogImmagini();
+    scrivi("#blog-esito-immagine",
+      "Aggiunta (" + esito.larghezza + "x" + esito.altezza + "). Scrivile l'alt: serve a chi non vede.",
+      "ok");
+    programmaSalvataggio();
+  } catch (e) {
+    scrivi("#blog-esito-immagine", "Caricamento non riuscito: " + e.message, "male");
+  }
+}
+
+function mostraBozza(e) {
+  const nodo = $("#blog-esito-bozza");
+  const passi = (e.passi || []).map((p) => "<li>" + scappa(p) + "</li>").join("");
+  const resa = e.resa || {};
+  $("#blog-bozza-messaggio").innerHTML =
+    scappa(e.motivo || "Bozza depositata.") + (e.id ? " \u00b7 ID " + e.id : "") +
+    (passi ? '<ul class="elenco-passi">' + passi + "</ul>" : "") +
+    (resa.parole ? '<span class="esito-tenue">Resa reale: ' + resa.parole + " parole, " +
+      (resa.immagini || 0) + " immagini, " + ((resa.titoli || []).length) + " titoli.</span>" : "");
+  const link = $("#blog-anteprima-link");
+  if (e.anteprima) {
+    link.href = e.anteprima;
+    link.textContent = "Apri l'anteprima della bozza";
+    link.classList.remove("nascosto");
+  } else {
+    link.classList.add("nascosto");
+  }
+  nodo.classList.remove("nascosto");
+  nodo.scrollIntoView({ behavior: "smooth", block: "nearest" });
 }

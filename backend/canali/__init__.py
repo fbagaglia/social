@@ -8,6 +8,7 @@ prima di fidarsi di un numero, rimisurarlo sul proprio account.
 from __future__ import annotations
 
 from canali.base import Canale, registra, _testo_url
+from canali.umanesimodigitale import CanaleUmanesimo
 
 # --------------------------------------------------------------------------- #
 
@@ -251,4 +252,30 @@ registra(Canale(
     fonte_limite="Limite del compositore Community; nessuna API pubblica per pubblicarlo",
     nota_consegna=("Il post Community si crea a mano da YouTube Studio: qui copi testo e "
                    "immagine. Nessuna API pubblica lo permette."),
+))
+
+# --------------------------------------------------------------------------- #
+# Il blog: non e' un social, e' una destinazione d'articolo.
+# `tipo="blog"` fa comparire nel modulo i pezzi che solo un articolo ha:
+# le due immagini del corpo, le FAQ a scomparsa, i campi SEO, il tasto per WordPress.
+# --------------------------------------------------------------------------- #
+
+registra(CanaleUmanesimo(
+    chiave="umanesimodigitale",
+    tipo="blog",
+    collegato=True,          # deposita la bozza via MCP: non e' consegna manuale
+    etichetta="Umanesimodigitale.info",
+    limite=40000,
+    hashtag_max=0,
+    immagine=True,
+    prompt=("Articolo per il magazine Umanesimo Digitale: tono caldo, accessibile, "
+            "saggistico e concreto, mai accademese. Apri con un lede di 2-3 frasi che "
+            "risponde alla domanda del titolo, poi sezioni con titoli descrittivi."),
+    fonte_limite=("WordPress + AI Engine via MCP: il corpo non ha tetto, ma i campi SEO si' "
+                  "(SEO title 60 caratteri, meta description 160)"),
+    file_immagine="facoltativa",
+    titolo_etichetta="Titolo dell'articolo",
+    nota_consegna=("Si deposita come BOZZA su WordPress: si rilegge nell'anteprima e si "
+                   "pubblica da wp-admin. La pubblicazione e' una tua decisione."),
+    testo_nel_collegamento=False,
 ))

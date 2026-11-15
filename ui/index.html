@@ -82,6 +82,7 @@
     <h3 class="sottotitolo-area"><span class="numero">3</span> Titolo e testo</h3>
     <div class="barra-comandi">
       <button type="button" id="tasto-genera" class="tasto tasto-forte">Genera titolo e testo</button>
+      <button type="button" id="tasto-genera-articolo" class="tasto">Scrivi l'articolo per il blog</button>
       <span class="esito-tenue" id="esito-genera"></span>
     </div>
 
@@ -160,6 +161,72 @@
         </div>
         <p class="spiegazione">Col compositore aperto: <strong>Copia l'immagine</strong> e poi Ctrl+V nel riquadro del post, oppure <strong>Apri la cartella</strong> e trascini il file.</p>
       </div>
+    </div>
+  </article>
+
+  <!-- 4b — il pannello del blog: compare solo se la destinazione e' un articolo -->
+  <article class="riquadro nascosto" id="pannello-blog">
+    <h3 class="sottotitolo-area"><span class="numero">4b</span> L'articolo per <span id="blog-sito">umanesimodigitale.info</span></h3>
+    <p class="spiegazione">Qui non si scrive un post: si compone un articolo nella forma del sito
+      (apertura, sezioni, FAQ a scomparsa, campi SEO) e si deposita come <strong>bozza</strong>.
+      La pubblicazione la decidi tu da wp-admin.</p>
+    <p class="esito-tenue" id="blog-stato"></p>
+
+    <div class="modulo">
+      <label for="blog-gancio">Titolo-gancio <span class="esito-tenue">(la frase che sta sopra l'apertura)</span></label>
+      <input type="text" id="blog-gancio" placeholder="Es. Nessuno resta indietro">
+      <label for="blog-sintesi">Frase-sintesi <span class="esito-tenue">(in corsivo, apre l'occhiello)</span></label>
+      <input type="text" id="blog-sintesi" placeholder="Una frase che dice di cosa parla l'articolo">
+      <label for="blog-slug">Indirizzo dell'articolo (slug)</label>
+      <input type="text" id="blog-slug" placeholder="alfabetizzazione-digitale-democrazia">
+    </div>
+
+    <div class="blocco">
+      <h4 class="titolo-modulo">Le due immagini nel corpo <span class="esito-tenue">facoltative</span></h4>
+      <p class="spiegazione">Vanno <em>dentro</em> il testo, dopo un paragrafo. La copertina (sezione 5) invece
+        diventa l'immagine in evidenza e quella dell'apertura.</p>
+      <div id="blog-immagini" class="griglia-allegati"></div>
+      <div class="barra-comandi">
+        <input type="file" id="blog-file-immagine" accept="image/png,image/jpeg,image/webp">
+        <button type="button" id="blog-aggiungi-immagine" class="tasto">Aggiungi al corpo</button>
+        <span class="esito-tenue" id="blog-esito-immagine"></span>
+      </div>
+    </div>
+
+    <div class="blocco">
+      <h4 class="titolo-modulo">Domande frequenti <span class="esito-tenue">titoli a scomparsa</span></h4>
+      <div class="barra-comandi">
+        <button type="button" id="blog-genera-faq" class="tasto tasto-forte">Genera le FAQ</button>
+        <button type="button" id="blog-aggiorna-anteprima" class="tasto tasto-tenue" disabled>Aggiorna l'anteprima</button>
+        <span class="esito-tenue" id="blog-esito-faq"></span>
+      </div>
+      <div id="blog-faq-lista" class="modulo"></div>
+      <div id="blog-faq-anteprima" class="anteprima-faq"></div>
+      <details class="dettaglio-html">
+        <summary>Il blocco HTML che finira' nell'articolo (senza tag globali)</summary>
+        <textarea id="blog-faq-html" rows="8" readonly placeholder="Qui compare il blocco quando ci sono le domande."></textarea>
+      </details>
+    </div>
+
+    <div class="blocco">
+      <h4 class="titolo-modulo">Campi SEO</h4>
+      <div class="barra-comandi">
+        <button type="button" id="blog-genera-seo" class="tasto tasto-forte">Genera titolo e descrizione SEO</button>
+        <span class="esito-tenue" id="blog-esito-seo"></span>
+      </div>
+      <label for="blog-seo-title">SEO title <span class="contatore" id="blog-seo-title-contatore"></span></label>
+      <input type="text" id="blog-seo-title" placeholder="Il titolo che compare su Google">
+      <label for="blog-seo-description">Meta description <span class="contatore" id="blog-seo-description-contatore"></span></label>
+      <textarea id="blog-seo-description" rows="3" placeholder="Cosa trova chi clicca"></textarea>
+      <label for="blog-focus-keyword">Parola chiave</label>
+      <input type="text" id="blog-focus-keyword" placeholder="alfabetizzazione digitale">
+      <label for="blog-categorie">Categorie del sito <span class="esito-tenue">(Ctrl per sceglierne piu' d'una)</span></label>
+      <select id="blog-categorie" multiple size="6"></select>
+    </div>
+
+    <div id="blog-esito-bozza" class="nascosto">
+      <p class="esito-ok" id="blog-bozza-messaggio"></p>
+      <p><a id="blog-anteprima-link" href="#" target="_blank" rel="noopener"></a></p>
     </div>
   </article>
 

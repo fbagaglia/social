@@ -28,6 +28,7 @@ SEGRETI = (
     "canali.mastodon.access_token",
     "canali.bluesky.app_password",
     "canali.telegram.bot_token",
+    "canali.umanesimodigitale.token",
 )
 
 PREDEFINITO = {
@@ -51,6 +52,11 @@ PREDEFINITO = {
         "mastodon": {"istanza": "", "access_token": ""},
         "bluesky": {"handle": "", "app_password": ""},
         "telegram": {"bot_token": "", "chat_id": ""},
+        # il blog: non e' un social, e' una destinazione d'articolo (vedi canali/umanesimodigitale.py)
+        "umanesimodigitale": {
+            "token": "",              # token MCP del sito; se vuoto si legge da %LOCALAPPDATA%\hermes\.env
+            "categorie": [],          # id delle categorie da assegnare alle bozze
+        },
     },
     "pubblicazione": {"lingua": "it", "firma": ""},
 }

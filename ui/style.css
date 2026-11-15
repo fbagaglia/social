@@ -280,3 +280,72 @@ button:focus-visible,a:focus-visible{
   .linguette{padding:0 12px}
   .area{padding:18px 12px 60px}
 }
+
+/* ---------------------------------------------------------------- blog ---
+   Il pannello dell'articolo. Poche regole, e tutte per far leggere bene le
+   parti che solo un articolo ha: le immagini del corpo, le FAQ, i campi SEO. */
+
+.titolo-modulo {
+  margin: 22px 0 8px;
+  font-size: 0.98rem;
+  font-weight: 650;
+}
+
+.coppia-faq {
+  border-left: 3px solid var(--bordo-tenue, #d8dee9);
+  padding: 10px 0 14px 14px;
+  margin-bottom: 14px;
+}
+
+.coppia-faq label { display: block; margin-top: 8px; font-size: 0.86rem; opacity: 0.75; }
+
+.griglia-allegati {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
+  gap: 14px;
+  margin: 12px 0;
+}
+
+.allegato-mini {
+  border: 1px solid var(--bordo-tenue, #d8dee9);
+  border-radius: 12px;
+  padding: 10px;
+}
+
+.allegato-mini img {
+  width: 100%;
+  height: 120px;
+  object-fit: cover;
+  border-radius: 8px;
+  display: block;
+  margin-bottom: 8px;
+}
+
+.allegato-mini input[type="text"] { width: 100%; margin: 4px 0 8px; }
+
+/* L'anteprima delle FAQ mostra il markup vero, con il suo CSS scoped: quello che
+   si vede qui e' quello che finisce nell'articolo. Il riquadro va limitato in
+   altezza, altrimenti con 5 domande aperte mangia la pagina. */
+.anteprima-faq {
+  margin: 16px 0;
+  padding: 6px 4px;
+  max-height: 620px;
+  overflow-y: auto;
+}
+
+.anteprima-faq:empty { display: none; }
+
+.dettaglio-html { margin-top: 10px; }
+.dettaglio-html summary { cursor: pointer; font-size: 0.88rem; opacity: 0.8; }
+.dettaglio-html textarea { margin-top: 8px; font-family: monospace; font-size: 0.82rem; }
+
+.esito-ok {
+  background: rgba(46, 160, 67, 0.12);
+  border-left: 4px solid #2ea043;
+  border-radius: 8px;
+  padding: 10px 14px;
+  margin: 12px 0 0;
+}
+
+.elenco-passi { margin: 8px 0 6px 18px; font-size: 0.86rem; opacity: 0.85; }
+.elenco-passi li { margin: 2px 0; }

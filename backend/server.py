@@ -25,6 +25,9 @@ sys.path.insert(0, str(RADICE))    # il pacchetto xpost sta nella radice del pro
 
 from canali import base as canali          # noqa: E402
 from canali import x as canale_x           # noqa: E402  (registra il canale "x")
+from canali.umanesimodigitale import sezioni_di   # noqa: E402
+from umanesimo import articolo as articolo_mod    # noqa: E402
+from umanesimo import mcp as mcp_mod              # noqa: E402
 import config as cfg                       # noqa: E402
 import fonti                               # noqa: E402
 import generazione                         # noqa: E402
@@ -230,6 +233,8 @@ class Gestore(BaseHTTPRequestHandler):
                     self._invia(200, guida.read_bytes(), TIPI[".md"])
                 else:
                     self.errore("guida non trovata", 404)
+            elif percorso == "/api/blog/stato":
+                self._blog_stato()
             elif percorso == "/api/corrente":
                 self.json(stato.leggi_corrente())
             elif percorso == "/api/pubblicazioni":
@@ -252,6 +257,13 @@ class Gestore(BaseHTTPRequestHandler):
             self.errore(str(errore), 404)
             return
         if not canale.collegato or not hasattr(canale, "ponte"):
+            # Un blog non ha un "ponte" verso un account: pubblica componendo l'articolo
+            # e depositando la bozza. Dire "non collegato" sarebbe falso.
+            if getattr(canale, "tipo", "social") == "blog":
+                collegato, motivo = canale.pronto(conf)
+                self.json({"collegato": collegato, "blog": True, "account": None,
+                           "motivo": motivo})
+                return
             self.json({"collegato": False, "manuale": True, "account": None, "motivo": ""})
             return
 
@@ -292,6 +304,14 @@ class Gestore(BaseHTTPRequestHandler):
                 self._genera(grezzo)
             elif percorso == "/api/adatta":
                 self._adatta(grezzo)
+            elif percorso == "/api/blog/articolo":
+                self._blog_articolo(grezzo)
+            elif percorso == "/api/blog/faq":
+                self._blog_faq(grezzo)
+            elif percorso == "/api/blog/seo":
+                self._blog_seo(grezzo)
+            elif percorso == "/api/blog/faq-html":
+                self._blog_faq_html(grezzo)
             elif percorso == "/api/immagine/carica":
                 self._carica_immagine(grezzo, tipo_contenuto)
             elif percorso == "/api/immagine/genera":
@@ -363,6 +383,111 @@ class Gestore(BaseHTTPRequestHandler):
             self.json({"ok": False, "motivo": str(errore)})
             return
         self.json({"ok": True, "canale": canale.chiave, **esito})
+
+    # --- il magazine (umanesimodigitale.info) ------------------------------- #
+
+    def _blog_stato(self) -> None:
+        """Il canale verso il sito: c'e' il token? risponde? quali categorie offre?
+
+        Sola lettura: non crea e non modifica niente. Il token non esce mai da qui.
+        """
+        conf = cfg.leggi()
+        if not mcp_mod.presente(conf):
+            self.json({"ok": False, "collegato": False,
+                       "motivo": ("manca il token MCP di umanesimodigitale.info: si incolla in "
+                                  "Configurazione, oppure vive in %LOCALAPPDATA%\\hermes\\.env")})
+            return
+        try:
+            cliente = mcp_mod.MCP(conf)
+            info = cliente.apri()
+            conteggi = cliente.chiama("wp_count_posts", {"post_type": "post"})
+            grezze = cliente.chiama("wp_get_terms", {"taxonomy": "category", "per_page": 100})
+        except mcp_mod.ErroreMCP as errore:
+            self.json({"ok": False, "collegato": False, "motivo": str(errore)})
+            return
+
+        categorie = []
+        for voce in (grezze if isinstance(grezze, list) else []):
+            identificatore = voce.get("term_id", voce.get("id"))
+            if identificatore is not None:
+                categorie.append({"id": int(identificatore), "nome": str(voce.get("name", ""))})
+        conteggi = conteggi if isinstance(conteggi, dict) else {}
+        self.json({
+            "ok": True,
+            "collegato": True,
+            "sito": info.get("name") or mcp_mod.SITO,
+            "categorie": sorted(categorie, key=lambda c: c["nome"]),
+            "pubblicati": conteggi.get("publish"),
+            "bozze": conteggi.get("draft"),
+        })
+
+    def _blog_articolo(self, grezzo: bytes) -> None:
+        """Il corpo dell'articolo, con le sezioni gia' marcate e riconosciute."""
+        dati = self._json_corpo(grezzo)
+        try:
+            esito = generazione.articolo_da_fonte(dati.get("fonte") or {},
+                                                  dati.get("parametri"), cfg.leggi())
+        except generazione.GenerazioneError as errore:
+            self.json({"ok": False, "motivo": str(errore)})
+            return
+        corpo = sezioni_di(esito["testo"])
+        self.json({"ok": True, **esito,
+                   "paragrafi": len(corpo["paragrafi"]),
+                   "sezioni": [t for _, t in corpo["sezioni"]],
+                   "orfani": corpo["orfani"]})
+
+    def _blog_faq(self, grezzo: bytes) -> None:
+        """Le domande frequenti, e il blocco HTML gia' pronto con l'anteprima."""
+        dati = self._json_corpo(grezzo)
+        testo = dati.get("testo", "")
+        if not testo.strip():
+            self.json({"ok": False, "motivo": "prima serve il testo dell'articolo"})
+            return
+        try:
+            voci = generazione.faq_da_testo(testo, dati.get("titolo", ""), cfg.leggi(),
+                                            quante=int(dati.get("quante") or 4))
+        except generazione.GenerazioneError as errore:
+            self.json({"ok": False, "motivo": str(errore)})
+            return
+        if not voci:
+            self.json({"ok": False, "faq": [],
+                       "motivo": ("il testo non offre domande sensate: la sezione FAQ non si "
+                                  "inventa. Scrivile a mano, o lascia stare.")})
+            return
+        coppie = [(v["domanda"], v["risposta"]) for v in voci]
+        self.json({"ok": True, "faq": voci, "quante": len(voci),
+                   "html": articolo_mod.faq_html(coppie),
+                   "blocco": articolo_mod.blocco_faq(coppie)})
+
+    def _blog_seo(self, grezzo: bytes) -> None:
+        dati = self._json_corpo(grezzo)
+        if not (dati.get("testo") or "").strip():
+            self.json({"ok": False, "motivo": "prima serve il testo dell'articolo"})
+            return
+        try:
+            esito = generazione.seo_da_articolo(dati.get("titolo", ""), dati.get("testo", ""),
+                                                dati.get("sintesi", ""), cfg.leggi())
+        except generazione.GenerazioneError as errore:
+            self.json({"ok": False, "motivo": str(errore)})
+            return
+        self.json({"ok": True, **esito})
+
+    def _blog_faq_html(self, grezzo: bytes) -> None:
+        """Il blocco HTML delle FAQ com'e' adesso, dopo le correzioni a mano.
+
+        E' lo stesso markup che finisce nell'articolo: quello che si vede
+        nell'anteprima e' quello che si pubblica.
+        """
+        dati = self._json_corpo(grezzo)
+        coppie = [(str(v.get("domanda", "")).strip(), str(v.get("risposta", "")).strip())
+                  for v in (dati.get("faq") or [])]
+        coppie = [(d, r) for d, r in coppie if d and r]
+        if not coppie:
+            self.json({"ok": False, "motivo": "nessuna domanda completa: servono domanda e risposta"})
+            return
+        self.json({"ok": True, "quante": len(coppie),
+                   "html": articolo_mod.faq_html(coppie),
+                   "blocco": articolo_mod.blocco_faq(coppie)})
 
     def _carica_immagine(self, grezzo: bytes, tipo_contenuto: str) -> None:
         try:

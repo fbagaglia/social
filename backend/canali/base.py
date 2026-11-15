@@ -29,6 +29,7 @@ class Canale:
     nota_consegna: str = ""          # come si consegna il post a QUESTA rete, in pratica
     testo_nel_collegamento: bool = False  # l'indirizzo porta il testo dentro?
     nota_immagine: str = ""          # vincolo dell'immagine su quella rete, se c'e'
+    tipo: str = "social"             # "social" = post breve | "blog" = articolo
 
     # --- credenziali ------------------------------------------------------- #
     def credenziali_mancanti(self, conf: dict) -> list[str]:
@@ -174,6 +175,7 @@ def elenco() -> list[dict]:
             "nota_immagine": c.nota_immagine,
             "nota_consegna": c.nota_consegna,
             "testo_nel_collegamento": c.testo_nel_collegamento,
+            "tipo": c.tipo,
         }
         for c in REGISTRO.values()
     ]
