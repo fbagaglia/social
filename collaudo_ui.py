@@ -69,7 +69,8 @@ def main():
         check("modulo parametri disegnato (9 campi)", campi == 9, str(campi))
 
         canali = pagina.eval_on_selector_all(".canale", "n => n.length")
-        check("9 tasti canale disegnati", canali == 9, str(canali))
+        # nove social + il blog: se un canale sparisce in silenzio, questo lo prende
+        check("10 tasti canale disegnati (9 social + il blog)", canali == 10, str(canali))
 
         tasti = pagina.eval_on_selector_all("#blocco-adattato button, #blocco-adattato input, #blocco-adattato textarea",
                                             "n => n.length")
@@ -209,8 +210,13 @@ def main():
         # --- cambio area e ritorno ---
         pagina.click(".linguetta[data-tab=config]")
         check("area Configurazione si apre", pagina.is_visible("#tab-config"))
-        campi_conf = pagina.eval_on_selector_all("#modulo-llm input, #modulo-x input", "n => n.length")
-        check("Configurazione: campi disegnati", campi_conf >= 7, str(campi_conf))
+        # i campi del modello sono <select>, non <input>: si contano tutti e due i tipi
+        campi_conf = pagina.eval_on_selector_all(
+            "#modulo-llm input, #modulo-llm select, #modulo-x input", "n => n.length")
+        check("Configurazione: campi disegnati (tendine comprese)", campi_conf >= 7, str(campi_conf))
+        tendine = pagina.eval_on_selector_all("#modulo-llm select", "n => n.length")
+        check("Configurazione: il modello e' una tendina, non un campo da digitare",
+              tendine >= 2, str(tendine))
         segreta = pagina.input_value("#conf-orKey")
         check("Configurazione: la chiave NON e' in pagina", segreta == "", repr(segreta))
         pagina.click(".linguetta[data-tab=registro]")
