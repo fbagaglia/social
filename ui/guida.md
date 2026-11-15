@@ -1,6 +1,18 @@
 # Guida di Social Studio
 
-## Novità di questa versione (0.4.0)
+## Novità di questa versione (0.5.0)
+
+- **Il blog è una destinazione, non un social.** Scegliendo *Umanesimodigitale.info*
+  compare un pannello suo (4b) con i pezzi che solo un articolo ha: due immagini nel
+  corpo, le FAQ a scomparsa, i campi SEO. Il tasto finale dice **Deposita la bozza** e
+  crea la bozza su WordPress — la pubblicazione resta una tua decisione.
+- **Il modello non si scrive più: si sceglie.** In Configurazione prima il *provider*,
+  poi il modello dal suo catalogo, raggruppato per editore. Un nome sbagliato di un
+  carattere non dà errore: dà un guasto alla prima generazione. Adesso non si sbaglia.
+- **Le FAQ hanno l'anteprima vera.** Quello che vedi nell'anteprima **è** il markup che
+  finisce nell'articolo: non due cose che possono divergere.
+
+## Versione 0.4.0
 
 - **La consegna manuale si spiega da sola.** Scegliendo una rete compare la riga che dice
   come si consegna il post *su quella rete*: per Facebook "prima il testo, poi l'immagine",
@@ -89,6 +101,30 @@ se sfori, **il testo non viene troncato**: te lo dice e lo accorci tu.
 
 Ogni versione resta salvata: se torni su quel social la ritrovi come l'avevi lasciata.
 
+Fra le destinazioni c'è anche **Umanesimodigitale.info**, che non è un social: scegliendolo
+compare il pannello **4b** (vedi sotto).
+
+### 4b. La destinazione blog (Umanesimodigitale.info)
+
+Un articolo non è un post: ha un titolo-gancio, una frase-sintesi, delle FAQ e dei campi
+SEO che un social non ha. Per questo il pannello è suo, e compare solo scegliendolo.
+
+- **Due immagini nel corpo** (facoltative): vanno *dentro* il testo, dopo un paragrafo, e
+  ognuna vuole il suo `alt` — serve a chi non vede l'immagine. La copertina della sezione 5
+  diventa invece l'immagine in evidenza e quella dell'apertura.
+- **FAQ a scomparsa**: *Genera le FAQ* scrive da 3 a 5 domande con risposta
+  autosufficiente. **L'anteprima è il markup che si pubblica**: non sono due cose che
+  possono divergere. Correggi domande e risposte a mano e l'anteprima segue.
+- **Campi SEO**: *Genera titolo e descrizione* rispetta i tetti del sito (60 e 160
+  caratteri) e li **misura**, non li stima: se il modello sfora glielo si dice con il
+  numero vero e riscrive.
+- **I titoli di sezione si scrivono con il prefisso `## `** dentro il testo: una riga che
+  comincia così diventa un titolo di sezione. Il primo paragrafo va nell'apertura, quindi
+  la prima sezione non può cadere lì (l'app te lo dice).
+- **Il tasto finale dice `Deposita la bozza`**, non `Pubblica`: crea la bozza su WordPress
+  con categorie, immagine in evidenza e campi SEO già dentro, e ti restituisce l'ID e il
+  link di anteprima. **La pubblicazione la fai tu da wp-admin.**
+
 ### 5. Immagine
 
 Due vie, entrambe legittime:
@@ -125,6 +161,7 @@ articoli con il link in chiaro, sappi che quell'URL costa tredici volte il resto
 | Threads | manuale | *Anteprima* → *Apri il compositore* |
 | Bluesky | manuale | *Anteprima* → *Apri il compositore* |
 | YouTube (post Community) | manuale | non esiste API pubblica per pubblicarlo |
+| **Umanesimodigitale.info** | **collegato** (WordPress via MCP) | *Deposita la bozza* — l'articolo, non un post |
 
 Il tasto di invio è **spento** quando la rete scelta non è pronta, e la ragione è scritta
 sotto. Un canale in consegna manuale non sparisce: resta in elenco e offre *Apri il
@@ -186,8 +223,17 @@ L'app te li scrive accanto ai problemi dell'anteprima, perché cambiano da rete 
 
 ## Configurazione
 
-- **Chiave OpenRouter** — obbligatoria per generare. Si imposta nella scheda
+- **Chiave del provider** — obbligatoria per generare. Si imposta nella scheda
   Configurazione; resta in `config.json`, che non finisce mai in git.
+- **Provider e modello** — il modello **non si scrive: si sceglie**. Prima il *provider*
+  (OpenRouter, OpenAI, Google, Groq, DeepSeek, Mistral, xAI, Together, o un indirizzo tuo),
+  poi il modello dal suo catalogo, **raggruppato per editore** e con i **gratuiti segnati**.
+  Il campo *Indirizzo del provider* cambia da solo scegliendo il provider: si tocca solo
+  per «Altro». Se il catalogo non si legge (chiave assente, provider senza elenco
+  pubblico), il campo **torna scrivibile con il motivo accanto** — un menu vuoto
+  bloccherebbe, un campo libero no. Un modello salvato che non è più in catalogo resta in
+  elenco con la scritta *(non più in elenco)*, così non ti ritrovi selezionato un altro
+  modello senza accorgertene.
 - **Firecrawl / Brave** — per la lettura arricchita delle fonti.
 - **X** — servono il *Client ID* e il *Client Secret* di una app creata su
   [console.x.com](https://console.x.com) con **OAuth 2.0** attivo e questo callback
