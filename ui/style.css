@@ -349,3 +349,21 @@ button:focus-visible,a:focus-visible{
 
 .elenco-passi { margin: 8px 0 6px 18px; font-size: 0.86rem; opacity: 0.85; }
 .elenco-passi li { margin: 2px 0; }
+
+/* Le tendine dei modelli: un elenco di centinaia di voci deve restare maneggevole,
+   e la scelta deve leggersi tutta (i nomi dei modelli sono lunghi). */
+.campo-parametro select {
+  width: 100%;
+  max-width: 560px;
+  padding: 8px 10px;
+  font: inherit;
+  font-size: 0.92rem;
+  border-radius: 8px;
+  color: inherit;
+  background: inherit;
+  border: 1px solid var(--bordo-tenue, #d8dee9);
+}
+
+.campo-parametro select:focus { outline: 2px solid var(--accento, #60a5fa); }
+
+.campo-parametro .nota { font-size: 0.82rem; opacity: 0.75; margin-top: 4px; }

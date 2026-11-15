@@ -990,15 +990,25 @@ async function caricaConfig() {
   const llm = conf.llm || {};
   const ricerca = conf.ricerca || {};
   const segreti = conf._segreti_presenti || {};
+  CONFIG_LLM = llm;
 
-  $("#modulo-llm").innerHTML = "";
-  $("#modulo-llm").appendChild(campo("Chiave OpenRouter", "conf-orKey", "password",
-    "", segreti["llm.orKey"] ? "presente: lascia vuoto per non cambiarla" : "assente"));
-  $("#modulo-llm").appendChild(campo("Modello", "conf-orModel", "text", llm.orModel || ""));
-  $("#modulo-llm").appendChild(campo("Modello per l'adattamento (facoltativo)", "conf-orModelAdatta", "text", llm.orModelAdatta || ""));
-  $("#modulo-llm").appendChild(campo("Chiave Firecrawl", "conf-firecrawlKey", "password",
+  const modulo = $("#modulo-llm");
+  modulo.innerHTML = "";
+  modulo.appendChild(campo("Chiave del provider", "conf-orKey", "password", "",
+    segreti["llm.orKey"] ? "presente: lascia vuoto per non cambiarla" : "assente"));
+
+  // Il provider viene prima del modello: e' lui che decide quali modelli esistono.
+  modulo.appendChild(scatolaEtichettata("conf-provider", "Provider", "conf-provider-nota", ""));
+  modulo.appendChild(scatolaEtichettata("conf-orModel", "Modello",
+    "conf-orModel-nota", "quello che scrive i testi"));
+  modulo.appendChild(scatolaEtichettata("conf-orModelAdatta", "Modello per l'adattamento",
+    "conf-orModelAdatta-nota", "facoltativo: se resta vuoto si usa il modello sopra"));
+  modulo.appendChild(campo("Indirizzo del provider", "conf-orUrl", "text", llm.orUrl || "",
+    "cambia da solo scegliendo il provider: si tocca solo per «Altro»"));
+
+  modulo.appendChild(campo("Chiave Firecrawl", "conf-firecrawlKey", "password",
     "", segreti["ricerca.firecrawlKey"] ? "presente" : "assente"));
-  $("#modulo-llm").appendChild(campo("Chiave Brave", "conf-braveKey", "password",
+  modulo.appendChild(campo("Chiave Brave", "conf-braveKey", "password",
     "", segreti["ricerca.braveKey"] ? "presente" : "assente"));
 
   $("#modulo-x").innerHTML = "";
@@ -1012,6 +1022,129 @@ async function caricaConfig() {
     (conf.pubblicazione || {}).firma || ""));
   $("#modulo-firma").appendChild(campo("Lingua predefinita", "conf-lingua", "text",
     (conf.pubblicazione || {}).lingua || "it"));
+
+  await riempiProvider();
+  await riempiModelli();
+}
+
+/* ------------------------------------------------------------ i modelli ---
+   Il modello non si scrive: si sceglie. L'elenco dipende dal provider, e il
+   provider e' l'indirizzo salvato. Se l'elenco non arriva (provider senza
+   catalogo pubblico, chiave assente, rete giu') si torna al campo scrivibile:
+   un menu vuoto bloccherebbe l'utente, un campo libero no. */
+
+let CONFIG_LLM = {};
+
+function scatolaEtichettata(id, etichetta, idNota, nota) {
+  const scatola = document.createElement("div");
+  scatola.className = "campo-parametro";
+  const lab = document.createElement("label");
+  lab.className = "etichetta";
+  lab.setAttribute("for", id);
+  lab.textContent = etichetta;
+  const posto = document.createElement("div");
+  posto.id = id + "-posto";
+  scatola.appendChild(lab);
+  scatola.appendChild(posto);
+  const n = document.createElement("div");
+  n.className = "nota";
+  n.id = idNota;
+  n.textContent = nota || "";
+  scatola.appendChild(n);
+  return scatola;
+}
+
+function mettiScelta(id, voci, selezionato, vuoto) {
+  const posto = $("#" + id + "-posto");
+  posto.innerHTML = "";
+  const sel = document.createElement("select");
+  sel.id = id;
+  if (vuoto) sel.appendChild(new Option(vuoto, ""));
+  const gruppi = {};
+  voci.forEach((v) => {
+    const opzione = new Option(v.etichetta, v.valore);
+    if (v.gruppo) {
+      if (!gruppi[v.gruppo]) {
+        gruppi[v.gruppo] = document.createElement("optgroup");
+        gruppi[v.gruppo].label = v.gruppo;
+        sel.appendChild(gruppi[v.gruppo]);
+      }
+      gruppi[v.gruppo].appendChild(opzione);
+    } else {
+      sel.appendChild(opzione);
+    }
+  });
+  // Un modello salvato che non e' piu' in elenco non deve sparire in silenzio:
+  // si aggiunge come voce, dicendolo. Altrimenti si salverebbe un'altra cosa.
+  if (selezionato && !Array.from(sel.options).some((o) => o.value === selezionato)) {
+    sel.appendChild(new Option(selezionato + "  (non piu' in elenco)", selezionato));
+  }
+  sel.value = selezionato || "";
+  posto.appendChild(sel);
+  return sel;
+}
+
+function mettiTesto(id, valore) {
+  const posto = $("#" + id + "-posto");
+  posto.innerHTML = "";
+  const inp = document.createElement("input");
+  inp.type = "text";
+  inp.id = id;
+  inp.value = valore || "";
+  posto.appendChild(inp);
+  return inp;
+}
+
+async function riempiProvider() {
+  try {
+    const esito = await chiedi("/api/providers");
+    const sel = mettiScelta("conf-provider",
+      (esito.provider || []).map((p) => ({ valore: p.id, etichetta: p.nome })),
+      esito.attuale || "openrouter", "");
+    const scelto = (esito.provider || []).find((p) => p.id === sel.value) || {};
+    $("#conf-provider-nota").textContent = scelto.nota || "";
+    sel.addEventListener("change", async () => {
+      const p = (esito.provider || []).find((x) => x.id === sel.value) || {};
+      $("#conf-provider-nota").textContent = p.nota || "";
+      if (p.url) $("#conf-orUrl").value = p.url;          // l'indirizzo segue il provider
+      await riempiModelli();
+    });
+  } catch (e) {
+    scrivi("#esito-llm", "Non riesco a leggere i provider: " + e.message, "male");
+  }
+}
+
+async function riempiModelli(forza) {
+  const provider = valoreDi("conf-provider") || "openrouter";
+  const dove = $("#conf-orModel-nota");
+  if (dove) dove.textContent = "sto leggendo l'elenco dei modelli\u2026";
+  try {
+    const esito = await chiedi("/api/modelli?provider=" + encodeURIComponent(provider) +
+                               (forza ? "&forza=1" : ""));
+    if (!esito.ok || !(esito.modelli || []).length) {
+      const motivo = esito.motivo || "elenco non disponibile";
+      mettiTesto("conf-orModel", CONFIG_LLM.orModel || "");
+      mettiTesto("conf-orModelAdatta", CONFIG_LLM.orModelAdatta || "");
+      if (dove) dove.textContent = "elenco a tendina non disponibile (" + motivo +
+        "): il modello si scrive a mano";
+      return;
+    }
+    const voci = esito.modelli.map((m) => ({
+      valore: m.id,
+      etichetta: m.nome + (m.gratuito ? "  \u00b7 gratis" : ""),
+      gruppo: m.gruppo,
+    }));
+    mettiScelta("conf-orModel", voci, CONFIG_LLM.orModel, "\u2014 scegli un modello \u2014");
+    mettiScelta("conf-orModelAdatta", voci, CONFIG_LLM.orModelAdatta, "\u2014 usa lo stesso \u2014");
+    if (dove) {
+      dove.textContent = esito.quanti + " modelli da " + esito.indirizzo +
+        (esito.quanti_gratuiti ? " \u00b7 " + esito.quanti_gratuiti + " gratuiti" : "") +
+        " \u00b7 raggruppati per editore";
+    }
+  } catch (e) {
+    mettiTesto("conf-orModel", CONFIG_LLM.orModel || "");
+    if (dove) dove.textContent = "elenco non raggiungibile (" + e.message + "): si scrive a mano";
+  }
 }
 
 function campo(etichetta, id, tipo, valore, nota) {
@@ -1037,6 +1170,7 @@ async function salvaConfigLlm() {
     await inviaJson("/api/config", {
       llm: {
         orKey: valoreDi("conf-orKey"),
+        orUrl: valoreDi("conf-orUrl"),
         orModel: valoreDi("conf-orModel"),
         orModelAdatta: valoreDi("conf-orModelAdatta"),
       },

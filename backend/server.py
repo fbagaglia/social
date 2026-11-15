@@ -32,6 +32,7 @@ import config as cfg                       # noqa: E402
 import fonti                               # noqa: E402
 import generazione                         # noqa: E402
 import immagini                            # noqa: E402
+import modelli                             # noqa: E402
 import parametri                           # noqa: E402
 import sistema                             # noqa: E402
 import stato                               # noqa: E402
@@ -235,6 +236,10 @@ class Gestore(BaseHTTPRequestHandler):
                     self.errore("guida non trovata", 404)
             elif percorso == "/api/blog/stato":
                 self._blog_stato()
+            elif percorso == "/api/providers":
+                self.json(modelli.catalogo_provider(cfg.leggi()))
+            elif percorso == "/api/modelli":
+                self._modelli(parse_qs(pezzi.query))
             elif percorso == "/api/corrente":
                 self.json(stato.leggi_corrente())
             elif percorso == "/api/pubblicazioni":
@@ -260,7 +265,7 @@ class Gestore(BaseHTTPRequestHandler):
             # Un blog non ha un "ponte" verso un account: pubblica componendo l'articolo
             # e depositando la bozza. Dire "non collegato" sarebbe falso.
             if getattr(canale, "tipo", "social") == "blog":
-                collegato, motivo = canale.pronto(conf)
+                collegato, motivo = canale.pronto(cfg.leggi())
                 self.json({"collegato": collegato, "blog": True, "account": None,
                            "motivo": motivo})
                 return
@@ -385,6 +390,24 @@ class Gestore(BaseHTTPRequestHandler):
         self.json({"ok": True, "canale": canale.chiave, **esito})
 
     # --- il magazine (umanesimodigitale.info) ------------------------------- #
+
+    # --- i modelli da scegliere -------------------------------------------- #
+
+    def _modelli(self, query: dict) -> None:
+        """Il catalogo del provider scelto. Sola lettura, con cache di un'ora lato modulo."""
+        conf = cfg.leggi()
+        scelto = (query.get("provider") or [""])[0].strip()
+        if not scelto:
+            scelto = modelli.provider_di((conf.get("llm") or {}).get("orUrl", ""))
+        try:
+            esito = modelli.modelli(scelto, conf,
+                                    forza=(query.get("forza") or [""])[0] == "1")
+        except modelli.ModelliError as errore:
+            # Non e' un guasto del server: e' una risposta. La tendina resta vuota e
+            # l'interfaccia lascia il campo scrivibile, cosi' nessuno resta bloccato.
+            self.json({"ok": False, "provider": scelto, "motivo": str(errore), "modelli": []})
+            return
+        self.json({"ok": True, **esito})
 
     def _blog_stato(self) -> None:
         """Il canale verso il sito: c'e' il token? risponde? quali categorie offre?
