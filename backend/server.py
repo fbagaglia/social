@@ -14,6 +14,7 @@ import os
 import sys
 import time
 import traceback
+import datetime
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from urllib.parse import parse_qs, urlsplit
@@ -34,6 +35,7 @@ import generazione                         # noqa: E402
 import immagini                            # noqa: E402
 import modelli                             # noqa: E402
 import parametri                           # noqa: E402
+import rassegna                            # noqa: E402
 import sistema                             # noqa: E402
 import stato                               # noqa: E402
 
@@ -317,6 +319,10 @@ class Gestore(BaseHTTPRequestHandler):
                 self._blog_seo(grezzo)
             elif percorso == "/api/blog/faq-html":
                 self._blog_faq_html(grezzo)
+            elif percorso == "/api/rassegna":
+                self._rassegna(grezzo)
+            elif percorso == "/api/rassegna/salva":
+                self._rassegna_salva(grezzo)
             elif percorso == "/api/immagine/carica":
                 self._carica_immagine(grezzo, tipo_contenuto)
             elif percorso == "/api/immagine/genera":
@@ -408,6 +414,82 @@ class Gestore(BaseHTTPRequestHandler):
             self.json({"ok": False, "provider": scelto, "motivo": str(errore), "modelli": []})
             return
         self.json({"ok": True, **esito})
+
+    # --- la rassegna stampa ------------------------------------------------ #
+
+    def _rassegna(self, grezzo: bytes) -> None:
+        """Da un elenco di link a una pagina impaginata, con un abstract complessivo.
+
+        Le fonti che non si riescono a leggere **non fanno saltare la rassegna**: si
+        raccolgono a parte e si dicono. Una rassegna con cinque voci su sei e' utile;
+        un errore che cancella tutto no.
+        """
+        dati = self._json_corpo(grezzo)
+        conf = cfg.leggi()
+        elenco = rassegna.link_da_testo(dati.get("testo", ""))
+        if not elenco:
+            self.json({"ok": False, "motivo":
+                       "nessun indirizzo riconosciuto: incolla i link, uno per riga"})
+            return
+
+        ricerca_conf = conf.get("ricerca") or {}
+        chiavi = {"firecrawlKey": ricerca_conf.get("firecrawlKey"),
+                  "braveKey": ricerca_conf.get("braveKey")}
+        usa_ricerca = bool(ricerca_conf.get("attiva", True))
+
+        lette, non_lette = [], []
+        for indirizzo in elenco:
+            try:
+                lette.append(rassegna.raccogli(indirizzo, chiavi=chiavi, ricerca=usa_ricerca))
+            except Exception as errore:                     # una fonte non si legge
+                non_lette.append({"url": indirizzo, "motivo": str(errore)[:200]})
+
+        if not lette:
+            self.json({"ok": False, "motivo": "nessuna delle fonti si e' potuta leggere",
+                       "non_lette": non_lette})
+            return
+
+        oggi = _data_italiana(dati.get("data"))
+        try:
+            esito = generazione.rassegna_da_materiale(lette, conf, oggi=oggi)
+        except generazione.GenerazioneError as errore:
+            self.json({"ok": False, "motivo": str(errore), "non_lette": non_lette})
+            return
+
+        titolo = (dati.get("titolo") or "").strip() or esito["titolo"] or "Rassegna stampa"
+        markup = rassegna.componi(
+            titolo=titolo,
+            data=oggi,
+            sintesi=esito["sintesi"],
+            voci=esito["voci"],
+            occhiello=(dati.get("occhiello") or "Rassegna stampa").strip(),
+            firma=(dati.get("firma") or (conf.get("pubblicazione") or {}).get("firma") or "").strip(),
+        )
+        controllo = rassegna.valida(markup)
+        self.json({
+            "ok": True,
+            "html": markup,
+            "titolo": titolo,
+            "data": oggi,
+            "sintesi": esito["sintesi"],
+            "voci": esito["voci"],
+            "non_lette": non_lette,
+            "controllo": controllo,
+            "via": esito.get("via", ""),
+        })
+
+    def _rassegna_salva(self, grezzo: bytes) -> None:
+        dati = self._json_corpo(grezzo)
+        markup = dati.get("html") or ""
+        if not markup.strip():
+            self.json({"ok": False, "motivo": "non c'e' niente da salvare"})
+            return
+        try:
+            percorso = rassegna.salva(markup, cfg.RADICE / "outbox" / "rassegna")
+        except OSError as errore:
+            self.json({"ok": False, "motivo": f"non sono riuscito a scrivere: {errore}"})
+            return
+        self.json({"ok": True, "percorso": percorso, "nome": Path(percorso).name})
 
     def _blog_stato(self) -> None:
         """Il canale verso il sito: c'e' il token? risponde? quali categorie offre?
@@ -595,6 +677,24 @@ class Gestore(BaseHTTPRequestHandler):
 
 # --------------------------------------------------------------------------- #
 
+# --------------------------------------------------------------------------- #
+
+MESI = ("gennaio", "febbraio", "marzo", "aprile", "maggio", "giugno", "luglio",
+        "agosto", "settembre", "ottobre", "novembre", "dicembre")
+
+
+def _data_italiana(valore: str = "") -> str:
+    """La data della rassegna: quella scritta a mano, o oggi in italiano.
+
+    In italiano e non in formato ISO: la data finisce in pagina, sotto il titolo.
+    """
+    scritta = (valore or "").strip()
+    if scritta:
+        return scritta
+    oggi = datetime.date.today()
+    return f"{oggi.day} {MESI[oggi.month - 1]} {oggi.year}"
+
+
 def banner() -> None:
     info = diagnosi()
     chiavi = info["chiavi"]
@@ -617,7 +717,33 @@ def banner() -> None:
     print("=" * 62)
 
 
+def _gia_acceso() -> bool:
+    """C'e' gia' una copia in ascolto su questa porta?
+
+    Serve davvero: su Windows `HTTPServer` attiva `SO_REUSEADDR`, quindi **due
+    istanze riescono ad aprire la stessa porta** e il sistema operativo distribuisce
+    le richieste fra le due. Il sintomo e' il peggiore possibile: rotte che a volte
+    rispondono e a volte danno 404, senza un errore da nessuna parte.
+    """
+    import socket
+
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sonda:
+        sonda.settimeout(0.6)
+        return sonda.connect_ex(("127.0.0.1", PORTA)) == 0
+
+
 def main() -> int:
+    if _gia_acceso():
+        print("=" * 62)
+        print(f" Social Studio e' GIA' ACCESO su questa porta ({PORTA}).")
+        print("=" * 62)
+        print(" Non ne avvio una seconda: due copie sulla stessa porta si dividono")
+        print(" le richieste, e meta' di quello che chiedi finisce alla copia vecchia.")
+        print()
+        print(" Apri l'app che c'e' gia':  http://127.0.0.1:" + str(PORTA) + "/")
+        print(" Per ripartire da zero:     ferma_social_studio.bat")
+        return 1
+
     cfg.assicura_cartelle()
     banner()
     server = ThreadingHTTPServer(("127.0.0.1", PORTA), Gestore)

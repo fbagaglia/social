@@ -1,6 +1,18 @@
 # Guida di Social Studio
 
-## Novità di questa versione (0.5.0)
+## Novità di questa versione (0.6.0)
+
+- **C'è una terza area: Rassegna stampa.** Incolli un elenco di link — articoli di blog o
+  video YouTube — e ottieni una pagina impaginata: un titolo, la data, **un abstract
+  complessivo che racconta il trend** (che cosa dicono *insieme* quelle notizie, non una
+  per una) e una card per ogni fonte con miniatura, titolo e abstract. L'anteprima **è**
+  l'HTML che copi.
+- **L'app non si avvia due volte.** Se Social Studio è già acceso, una seconda copia non
+  parte e te lo dice: due copie sulla stessa porta si dividono le richieste, e metà di
+  quello che chiedi finisce alla copia vecchia (sintomo: rotte che a volte rispondono e a
+  volte no).
+
+## Versione 0.5.0
 
 - **Il blog è una destinazione, non un social.** Scegliendo *Umanesimodigitale.info*
   compare un pannello suo (4b) con i pezzi che solo un articolo ha: due immagini nel
@@ -147,6 +159,41 @@ Due vie, entrambe legittime:
 *Nota:* per X il costo stimato è di circa **0,015 USD** per un post di testo o con
 immagine, ma sale a circa **0,20 USD se il testo contiene un indirizzo web**. Se pubblichi
 articoli con il link in chiaro, sappi che quell'URL costa tredici volte il resto.
+
+## La rassegna stampa
+
+Un'area a parte, con la sua linguetta. Serve a un lavoro diverso dagli altri: non fare un
+post, ma **mettere in fila che cosa è successo**.
+
+**Come si usa.** Incolli i link nella textarea (uno per riga: articoli di blog, video
+YouTube, anche in ordine sparso), premi **Componi la rassegna** e aspetti. L'app legge
+ogni fonte, ne prende titolo, miniatura e contenuto, poi scrive:
+
+| Pezzo | Che cos'è |
+|---|---|
+| **Titolo** | attrattivo, e lo scrive l'AI se lo lasci vuoto |
+| **Data** | quella di oggi in italiano, o quella che scrivi tu |
+| **Abstract complessivo** | 400-700 caratteri che raccontano **il trend**: che cosa emerge dall'insieme. È il pezzo che un elenco di link non può dare |
+| **Le card** | una per fonte, in griglia a due colonne (una sola sotto i 640 px): miniatura, titolo, abstract di 2-3 frasi, dominio |
+
+**La miniatura arriva da sola.** Per YouTube è un indirizzo fisso (nessuna lettura); per
+un blog si legge l'`og:image` della pagina, cioè la stessa immagine che quel sito mostra
+quando qualcuno ne condivide il link.
+
+**Una fonte illeggibile non cancella la rassegna.** Se un link non risponde o è dietro un
+muro, l'app lo mette da parte, compone la rassegna con quello che ha letto e **te lo dice
+sotto l'anteprima**. Cinque voci su sei sono utili; un errore che cancella tutto no.
+
+**Alla fine:** *Copia l'HTML* (per incollarlo dove ti serve) o *Salva il file* (finisce in
+`outbox/rassegna/`). Il pulsante *Guarda il codice* mostra l'HTML che stai copiando.
+
+**Fino a 8 fonti.** Oltre, una rassegna non si legge: l'app usa le prime otto e te lo dice.
+
+**Perché è impaginata così.** Riprende la forma che il sito usa già per gli
+«Approfondimenti»: griglia a due colonne, card col bordo sinistro verde, miniatura come
+immagine di sfondo, e la palette del progetto (nero `#0C0D0D`, verde `#379557`, chiaro
+`#D9E1DA`, grigio scuro `#5B5F5C`, grigio chiaro `#818484`). Le card sono `<a>` che
+contengono tutto: si clicca dove capita sulla scheda.
 
 ## Che cosa è collegato e che cosa no
 

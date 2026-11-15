@@ -21,6 +21,7 @@ const stato = {
   xCollegato: false,
   statoCanali: {},
   blog: null,
+  rassegna: null,
 };
 
 const $ = (sel) => document.querySelector(sel);
@@ -233,7 +234,10 @@ function apriArea(nome) {
 
 function apriAreaDallIndirizzo() {
   const nome = (location.hash || "#crea").slice(1);
-  if (["crea", "config", "registro"].includes(nome)) apriArea(nome);
+  // Le aree possibili si leggono dalle linguette, non da un elenco scritto qui:
+  // aggiungerne una nuova non deve richiedere di ricordarsi anche questo posto.
+  const esistenti = $$(".linguetta").map((t) => t.dataset.tab);
+  apriArea(esistenti.includes(nome) ? nome : "crea");
 }
 
 async function caricaStato() {
@@ -461,6 +465,11 @@ function collegaEventi() {
   $("#blog-seo-description").addEventListener("input", disegnaContatoriSeo);
   $("#blog-gancio").addEventListener("input", programmaSalvataggio);
   $("#blog-sintesi").addEventListener("input", programmaSalvataggio);
+  $("#tasto-rassegna").addEventListener("click", componiRassegna);
+  $("#tasto-copia-html").addEventListener("click", copiaHtmlRassegna);
+  $("#tasto-salva-html").addEventListener("click", salvaHtmlRassegna);
+  $("#tasto-vedi-html").addEventListener("click", vediCodiceRassegna);
+  $("#rassegna-link").addEventListener("input", aggiornaConteggioRassegna);
   $("#velo").addEventListener("click", (e) => { if (e.target.id === "velo") chiudiFinestra(); });
   document.addEventListener("keydown", (e) => { if (e.key === "Escape") chiudiFinestra(); });
   $$("[data-copia]").forEach((b) => {
@@ -1623,4 +1632,130 @@ function mostraBozza(e) {
   }
   nodo.classList.remove("nascosto");
   nodo.scrollIntoView({ behavior: "smooth", block: "nearest" });
+}
+
+
+/* ============================================================ rassegna ==== */
+
+/* Da un elenco di link a una pagina impaginata. Il pezzo che un elenco non puo'
+   dare e' l'abstract complessivo: quello che dice che cosa hanno in comune quelle
+   notizie. Tutto il resto (miniature, titoli, card) esiste per reggere quello. */
+
+const RASSEGNA_MAX = 8;
+
+function linkRassegna() {
+  const trovati = ($("#rassegna-link").value || "").match(/https?:\/\/[^\s<>"')\]]+/gi) || [];
+  const visti = new Set();
+  const fuori = [];
+  trovati.forEach((indirizzo) => {
+    const chiave = indirizzo.replace(/[.,;:]+$/, "").replace(/\/+$/, "").toLowerCase();
+    if (visti.has(chiave)) return;
+    visti.add(chiave);
+    fuori.push(indirizzo);
+  });
+  return fuori;
+}
+
+function aggiornaConteggioRassegna() {
+  const quanti = linkRassegna().length;
+  const nodo = $("#rassegna-conteggio");
+  if (!quanti) { nodo.textContent = ""; return; }
+  if (quanti > RASSEGNA_MAX) {
+    nodo.textContent = quanti + " indirizzi: se ne useranno i primi " + RASSEGNA_MAX +
+      ". Una rassegna con troppe voci non si legge.";
+  } else {
+    nodo.textContent = quanti + (quanti === 1 ? " indirizzo riconosciuto" : " indirizzi riconosciuti");
+  }
+}
+
+async function componiRassegna() {
+  const quanti = linkRassegna().length;
+  if (!quanti) {
+    scrivi("#esito-rassegna", "Incolla almeno un indirizzo.", "male");
+    return;
+  }
+  scrivi("#esito-rassegna",
+    "Sto leggendo " + quanti + (quanti === 1 ? " fonte" : " fonti") +
+    " e scrivendo la rassegna\u2026 (puo' volerci qualche minuto: i video vanno trascritti)");
+  scrivi("#rassegna-problemi", "");
+  $("#tasto-rassegna").disabled = true;
+  try {
+    const esito = await inviaJson("/api/rassegna", {
+      testo: $("#rassegna-link").value,
+      titolo: $("#rassegna-titolo").value.trim(),
+      data: $("#rassegna-data").value.trim(),
+      firma: $("#rassegna-firma").value.trim(),
+    });
+    if (!esito.ok) {
+      scrivi("#esito-rassegna", esito.motivo || "Non riuscito.", "male");
+      mostraNonLette(esito.non_lette || []);
+      return;
+    }
+    stato.rassegna = esito;
+    disegnaRassegna(esito);
+    const c = esito.controllo || {};
+    scrivi("#esito-rassegna", "Fatta: " + c.voci + " voci, " + c.byte + " byte" +
+      (c.ok ? "" : " \u2014 ma le validazioni segnalano qualcosa"), c.ok ? "ok" : "male");
+    mostraNonLette(esito.non_lette || []);
+  } catch (e) {
+    scrivi("#esito-rassegna", "Non riuscita: " + e.message, "male");
+  } finally {
+    $("#tasto-rassegna").disabled = false;
+  }
+}
+
+function disegnaRassegna(esito) {
+  // L'anteprima E' il markup consegnato: non due cose che possono divergere.
+  $("#rassegna-anteprima").innerHTML = esito.html;
+  $("#rassegna-html").value = esito.html;
+  $("#riquadro-rassegna-esito").classList.remove("nascosto");
+  const c = esito.controllo || {};
+  $("#rassegna-riepilogo").textContent =
+    "\u00ab" + esito.titolo + "\u00bb \u00b7 " + esito.data + " \u00b7 " +
+    (esito.voci || []).length + " voci \u00b7 " + c.con_miniatura + " con miniatura \u00b7 " +
+    (esito.sintesi || "").length + " caratteri di abstract complessivo";
+  if (!c.ok) {
+    scrivi("#esito-rassegna-azioni", "Controlli: " + (c.problemi || []).join("; "), "male");
+  }
+  $("#riquadro-rassegna-esito").scrollIntoView({ behavior: "smooth", block: "start" });
+}
+
+function mostraNonLette(non_lette) {
+  const nodo = $("#rassegna-non-lette");
+  if (!non_lette.length) { nodo.textContent = ""; return; }
+  nodo.textContent = non_lette.length +
+    (non_lette.length === 1 ? " fonte non letta" : " fonti non lette") + ": " +
+    non_lette.map((x) => x.url + " (" + x.motivo + ")").join(" \u00b7 ");
+}
+
+async function copiaHtmlRassegna() {
+  const html = $("#rassegna-html").value;
+  if (!html) { scrivi("#esito-rassegna-azioni", "Non c'e' ancora niente da copiare.", "male"); return; }
+  try {
+    await navigator.clipboard.writeText(html);
+    scrivi("#esito-rassegna-azioni",
+      "HTML negli appunti (" + html.length + " caratteri). Incollalo dove ti serve.", "ok");
+  } catch (e) {
+    scrivi("#esito-rassegna-azioni", "Non riesco a copiare da solo: apri il codice e usa Ctrl+C.", "male");
+  }
+}
+
+async function salvaHtmlRassegna() {
+  const html = $("#rassegna-html").value;
+  if (!html) { scrivi("#esito-rassegna-azioni", "Non c'e' ancora niente da salvare.", "male"); return; }
+  try {
+    const esito = await inviaJson("/api/rassegna/salva", { html: html });
+    scrivi("#esito-rassegna-azioni",
+      esito.ok ? "Salvata in outbox/rassegna/" + esito.nome : (esito.motivo || "Non riuscito"),
+      esito.ok ? "ok" : "male");
+  } catch (e) {
+    scrivi("#esito-rassegna-azioni", "Non riuscito: " + e.message, "male");
+  }
+}
+
+function vediCodiceRassegna() {
+  const scatola = $("#rassegna-codice-scatola");
+  scatola.classList.toggle("nascosto");
+  scatola.open = !scatola.classList.contains("nascosto");
+  if (scatola.open) $("#rassegna-html").scrollIntoView({ behavior: "smooth", block: "nearest" });
 }

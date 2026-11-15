@@ -447,3 +447,90 @@ def _accorcia(testo: str, limite: int) -> str:
     if " " in tagliato:
         tagliato = tagliato[:tagliato.rfind(" ")]
     return tagliato.rstrip(" ,;:-")
+
+
+# --------------------------------------------------------------------------- #
+# La rassegna stampa
+#
+# Un elenco di link non dice niente: quello che dice qualcosa e' **che cosa hanno in
+# comune**. Per questo si chiede al modello una sintesi complessiva che racconti il
+# trend, oltre al titolo e all'abstract di ogni voce. E' il pezzo che un elenco non
+# puo' dare, ed e' la ragione per cui la rassegna esiste.
+# --------------------------------------------------------------------------- #
+
+def rassegna_da_materiale(materiale: list[dict], conf: dict, *, oggi: str = "") -> dict:
+    """Titolo, abstract complessivo (il trend) e una voce per ogni fonte.
+
+    `materiale` e' l'elenco di cio' che si e' riusciti a leggere: ogni voce ha
+    `url`, `titolo`, `testo`. Le fonti illeggibili non arrivano qui: si dicono a
+    parte, all'utente, invece di far saltare tutta la rassegna.
+    """
+    if not materiale:
+        raise GenerazioneError("nessuna fonte da riassumere")
+
+    sistema = SISTEMA_MAGAZINE + (
+        '\nRispondi SOLO con un oggetto JSON con le chiavi "titolo", "sintesi" e "voci".'
+    )
+
+    blocchi = []
+    for n, voce in enumerate(materiale, 1):
+        blocchi.append(
+            f"--- FONTE {n} ---\n"
+            f"INDIRIZZO: {voce.get('url', '')}\n"
+            f"TITOLO: {voce.get('titolo') or '(senza titolo)'}\n"
+            f"CONTENUTO:\n{(voce.get('testo') or '')[:6000]}\n"
+        )
+    elenco = "\n".join(blocchi)
+
+    utente = (
+        f"Oggi e' il {oggi}.\n\n"
+        "Qui sotto ci sono alcune notizie raccolte da fonti diverse (articoli di blog e "
+        "video). Devi comporne una **rassegna stampa**: non un elenco, ma un testo che "
+        "faccia capire che cosa sta succedendo.\n\n"
+        f"{elenco}\n\n"
+        "Scrivi in italiano e rispondi con:\n"
+        '- "titolo": il titolo della rassegna. Deve essere attrattivo e dire il tema, '
+        "non essere generico (max 90 caratteri).\n"
+        '- "sintesi": **l\'abstract complessivo**. E\' la parte piu\' importante: 4-6 '
+        "frasi che dicono che cosa emerge dall'insieme di queste notizie, quale "
+        "direzione comune si vede, che cosa cambia rispetto a prima. Descrivi un trend, "
+        "non un riassunto uno-per-uno: non elencare le fonti, non ripetere i loro "
+        "titoli, non citare i loro nomi. Deve reggersi da solo, come un paragrafo di "
+        "apertura. Tra 400 e 700 caratteri.\n"
+        '- "voci": una voce per OGNI fonte, nello stesso ordine, ognuna con:\n'
+        '   - "n": il numero della fonte (1, 2, 3...)\n'
+        '   - "titolo": un titolo breve e concreto per quella card (max 70 caratteri). '
+        "Se il titolo della fonte e' gia' buono, tienilo; altrimenti riscrivilo piu' "
+        "chiaro.\n"
+        '   - "abstract": 2-3 frasi che dicono che cosa contiene quella fonte in '
+        "particolare (200-400 caratteri). Niente preamboli tipo «Questo articolo "
+        "parla di»: entra subito nel merito.\n"
+        "Non inventare numeri, date, citazioni o nomi che non siano nelle fonti. Non "
+        "usare elenchi puntati: la forma la da' l'impaginazione."
+    )
+
+    dati = _estrai_json(_chiama(
+        [{"role": "system", "content": sistema}, {"role": "user", "content": utente}], conf,
+        max_tokens=6000))
+
+    # Le voci si ricompongono sull'elenco VERO delle fonti, non su quello che il
+    # modello ha contato: se salta o duplica una voce, la card non resta vuota.
+    proposte = {int(v.get("n", 0)): v for v in (dati.get("voci") or [])
+                if str(v.get("n", "")).strip().isdigit()}
+    voci = []
+    for n, fonte in enumerate(materiale, 1):
+        proposta = proposte.get(n) or {}
+        voci.append({
+            "url": fonte.get("url", ""),
+            "dominio": fonte.get("dominio", ""),
+            "miniatura": fonte.get("miniatura", ""),
+            "titolo": str(proposta.get("titolo") or fonte.get("titolo") or "").strip(),
+            "abstract": str(proposta.get("abstract") or "").strip(),
+        })
+
+    return {
+        "titolo": str(dati.get("titolo", "")).strip(),
+        "sintesi": str(dati.get("sintesi", "")).strip(),
+        "voci": voci,
+        "via": "OpenRouter",
+    }

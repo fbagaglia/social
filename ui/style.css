@@ -367,3 +367,19 @@ button:focus-visible,a:focus-visible{
 .campo-parametro select:focus { outline: 2px solid var(--accento, #60a5fa); }
 
 .campo-parametro .nota { font-size: 0.82rem; opacity: 0.75; margin-top: 4px; }
+
+/* ---------------------------------------------------------------- rassegna ---
+   L'anteprima porta il proprio foglio di stile (dentro l'HTML generato), quindi qui
+   serve solo il contenitore: sfondo bianco come una pagina, perche' la rassegna e'
+   pensata per un fondo chiaro. */
+
+.anteprima-rassegna {
+  margin: 16px 0 0;
+  padding: 26px 22px;
+  background: #ffffff;
+  border: 1px solid var(--bordo-tenue, #d8dee9);
+  border-radius: 12px;
+  overflow-x: auto;
+}
+
+.anteprima-rassegna:empty { display: none; }

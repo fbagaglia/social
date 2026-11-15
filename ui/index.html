@@ -26,6 +26,7 @@
 <nav class="linguette">
   <button type="button" class="linguetta attiva" data-tab="crea">Crea</button>
   <button type="button" class="linguetta" data-tab="config">Configurazione</button>
+  <button type="button" class="linguetta" data-tab="rassegna">Rassegna stampa</button>
   <button type="button" class="linguetta" data-tab="registro">Registro</button>
 </nav>
 
@@ -293,6 +294,55 @@
   <article class="riquadro">
     <h3 class="sottotitolo-area"><span class="numero">4</span> Gli altri social</h3>
     <p class="spiegazione">LinkedIn, Facebook, Instagram, Threads, Mastodon, Bluesky, Telegram e YouTube restano in consegna manuale: l'app prepara titolo, testo e immagine, e la pubblicazione la fai tu dal compositore. Collegarli richiede un'app sviluppatore approvata su ciascuna rete: si fa una rete alla volta, quando serve davvero.</p>
+  </article>
+</section>
+
+<!-- ==================== RASSEGNA STAMPA ==================== -->
+<section id="tab-rassegna" class="area">
+  <h2 class="titolo-area">Rassegna stampa</h2>
+
+  <article class="riquadro">
+    <h3 class="sottotitolo-area"><span class="numero">1</span> Gli indirizzi</h3>
+    <p class="spiegazione">Incolla i link &mdash; articoli di blog o video YouTube &mdash; uno per riga.
+      L'app legge ognuno, ne prende titolo, miniatura e contenuto, e compone una pagina
+      impaginata: un titolo, la data, un <strong>abstract complessivo che racconta il trend</strong>,
+      e una card per ogni fonte.</p>
+    <textarea id="rassegna-link" rows="9" placeholder="https://www.youtube.com/watch?v=…&#10;https://www.agendadigitale.eu/…&#10;https://…"></textarea>
+    <p class="esito-tenue" id="rassegna-conteggio"></p>
+
+    <div class="modulo">
+      <label for="rassegna-titolo">Titolo <span class="esito-tenue">facoltativo: se lo lasci vuoto lo scrive l'AI</span></label>
+      <input type="text" id="rassegna-titolo" placeholder="Che cosa emerge da questa settimana">
+      <label for="rassegna-data">Data <span class="esito-tenue">facoltativa: se la lasci vuota si mette oggi</span></label>
+      <input type="text" id="rassegna-data" placeholder="15 novembre 2026">
+      <label for="rassegna-firma">Firma in fondo <span class="esito-tenue">facoltativa</span></label>
+      <input type="text" id="rassegna-firma" placeholder="A cura di Franco Bagaglia">
+    </div>
+
+    <div class="barra-comandi">
+      <button type="button" id="tasto-rassegna" class="tasto tasto-forte">Componi la rassegna</button>
+      <span class="esito-tenue" id="esito-rassegna"></span>
+    </div>
+    <p class="esito-tenue" id="rassegna-problemi"></p>
+  </article>
+
+  <article class="riquadro nascosto" id="riquadro-rassegna-esito">
+    <h3 class="sottotitolo-area"><span class="numero">2</span> L'anteprima</h3>
+    <p class="spiegazione">Quello che vedi <strong>è</strong> l'HTML che copi: non due cose che possono
+      divergere. Nell'anteprima i link sono vivi, e sono gli stessi che finiscono nel codice.</p>
+    <div class="barra-comandi">
+      <button type="button" id="tasto-copia-html" class="tasto tasto-forte">Copia l'HTML</button>
+      <button type="button" id="tasto-salva-html" class="tasto">Salva il file</button>
+      <button type="button" id="tasto-vedi-html" class="tasto tasto-tenue">Guarda il codice</button>
+      <span class="esito-tenue" id="esito-rassegna-azioni"></span>
+    </div>
+    <p class="esito-tenue" id="rassegna-riepilogo"></p>
+    <div id="rassegna-anteprima" class="anteprima-rassegna"></div>
+    <p class="esito-tenue" id="rassegna-non-lette"></p>
+    <details class="dettaglio-html nascosto" id="rassegna-codice-scatola">
+      <summary>Il codice HTML della rassegna</summary>
+      <textarea id="rassegna-html" rows="14" readonly></textarea>
+    </details>
   </article>
 </section>
 
